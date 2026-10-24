@@ -126,16 +126,16 @@ npm.cmd run dev
 
 ## Sample Images & Licensing
 
-All sample images included in `backend/uploads/` are freely licensed and sourced from **Wikimedia Commons**:
+All sample images included in `backend/uploads/` are freely licensed and sourced from **Wikimedia Commons**. In accordance with **CC BY-SA 4.0** and **CC0** attribution terms, creator credits, source links, license deeds, and adaptation notices are provided below:
 
-| Local Filename | Wikimedia Commons File | License | Usage Terms |
-|---|---|---|---|
-| `sample-backpack.jpg` | [File:Jansport Backpack 3 2019-03-07.jpg](https://commons.wikimedia.org/wiki/File:Jansport_Backpack_3_2019-03-07.jpg) | **CC BY-SA 4.0** | Creative Commons Attribution-Share Alike 4.0 |
-| `sample-backpack-red.jpg` | [File:Red and blue champion backpack.jpg](https://commons.wikimedia.org/wiki/File:Red_and_blue_champion_backpack.jpg) | **CC0** | Creative Commons Zero (Public Domain) |
-| `sample-bottle.jpg` | [File:Metal Water Bottles.jpeg](https://commons.wikimedia.org/wiki/File:Metal_Water_Bottles.jpeg) | **CC0** | Creative Commons Zero (Public Domain) |
-| `sample-phone.jpg` | [File:Mobile phone.jpg](https://commons.wikimedia.org/wiki/File:Mobile_phone.jpg) | **CC BY-SA 4.0** | Creative Commons Attribution-Share Alike 4.0 |
-| `sample-umbrella.jpg` | [File:Black Umbrella.jpg](https://commons.wikimedia.org/wiki/File:Black_Umbrella.jpg) | **CC BY-SA 4.0** | Creative Commons Attribution-Share Alike 4.0 |
-| `sample-tote.jpg` | [File:Tote bag-making 17.jpg](https://commons.wikimedia.org/wiki/File:Tote_bag-making_17.jpg) | **CC BY-SA 4.0** | Creative Commons Attribution-Share Alike 4.0 |
+| Local Filename | Wikimedia Source File | Author / Creator | License | Modifications |
+|---|---|---|---|---|
+| `sample-backpack.jpg` | [File:Jansport Backpack 3 2019-03-07.jpg](https://commons.wikimedia.org/wiki/File:Jansport_Backpack_3_2019-03-07.jpg) | [Fastily](https://commons.wikimedia.org/wiki/User_talk:Fastily) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Scaled & compressed for web display |
+| `sample-backpack-red.jpg` | [File:Red and blue champion backpack.jpg](https://commons.wikimedia.org/wiki/File:Red_and_blue_champion_backpack.jpg) | [I AM GOING TO DRINK OCEAN WATER](https://commons.wikimedia.org/wiki/User:I_AM_GOING_TO_DRINK_OCEAN_WATER) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Scaled & compressed for web display |
+| `sample-bottle.jpg` | [File:Metal Water Bottles.jpeg](https://commons.wikimedia.org/wiki/File:Metal_Water_Bottles.jpeg) | [Amraepowell](https://commons.wikimedia.org/wiki/User:Amraepowell) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Scaled & compressed for web display |
+| `sample-phone.jpg` | [File:Mobile phone.jpg](https://commons.wikimedia.org/wiki/File:Mobile_phone.jpg) | [Pramodkumartk](https://commons.wikimedia.org/wiki/User:Pramodkumartk) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Scaled & compressed for web display |
+| `sample-umbrella.jpg` | [File:Black Umbrella.jpg](https://commons.wikimedia.org/wiki/File:Black_Umbrella.jpg) | [Mohamed Hozyen](https://commons.wikimedia.org/wiki/User:Hozyen) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Scaled & compressed for web display |
+| `sample-tote.jpg` | [File:Tote bag-making 17.jpg](https://commons.wikimedia.org/wiki/File:Tote_bag-making_17.jpg) | [Aminwa 21](https://commons.wikimedia.org/wiki/User:Aminwa_21) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Scaled & compressed for web display |
 
 ---
 
