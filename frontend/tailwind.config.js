@@ -7,31 +7,42 @@ export default {
   theme: {
     extend: {
       colors: {
-        page: '#f8fafc',
+        page: '#f4f6fb',
         card: '#ffffff',
         border: '#e2e8f0',
         primary: {
-          DEFAULT: '#4338ca',
-          hover: '#3730a3'
+          DEFAULT: '#1e1b4b', // Deep indigo
+          hover: '#2d2870',
+          brand: '#2563eb', // Vibrant indigo/blue for brand logo
+          light: '#eef2ff'
         },
         lost: {
-          text: '#d97706',
-          bg: '#fef3c7'
+          DEFAULT: '#ea580c',
+          text: '#ea580c',
+          bg: '#ffedd5',
+          border: '#fed7aa'
         },
         found: {
-          text: '#0d9488',
-          bg: '#ccfbf1'
+          DEFAULT: '#059669',
+          text: '#059669',
+          bg: '#d1fae5',
+          border: '#a7f3d0'
         },
         returned: {
-          text: '#6b7280',
-          bg: '#f3f4f6'
+          text: '#64748b',
+          bg: '#f1f5f9',
+          border: '#cbd5e1'
         },
         match: {
-          strong: '#16a34a',
+          strong: '#059669',
           good: '#2563eb',
           possible: '#64748b'
         },
         chip: {
+          categoryBg: '#ede9fe',
+          categoryText: '#4f46e5',
+          colorBg: '#e0f2fe',
+          colorText: '#0284c7',
           text: '#0369a1',
           bg: '#e0f2fe'
         },

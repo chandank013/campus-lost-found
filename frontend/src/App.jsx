@@ -50,12 +50,15 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-page flex flex-col">
-      <Navbar onNavigate={navigateTo} />
+    <div className="min-h-screen bg-page flex flex-col font-sans selection:bg-primary-light selection:text-primary-brand">
+      <Navbar onNavigate={navigateTo} currentView={view} />
 
       <div className="flex-1">
         {view === 'feed' && (
-          <FeedPage onSelectItem={(id) => navigateTo('detail', { id })} />
+          <FeedPage 
+            onSelectItem={(id) => navigateTo('detail', { id })} 
+            onNavigate={navigateTo}
+          />
         )}
 
         {view === 'report' && (
@@ -75,9 +78,18 @@ export default function App() {
         )}
       </div>
 
-      {/* Campus Footer */}
-      <footer className="mt-auto py-6 border-t border-border text-center text-xs text-text-muted">
-        <p>Campus Lost & Found — Built for fast recovery with explainable matching.</p>
+      {/* Clean Campus Footer */}
+      <footer className="mt-auto py-8 bg-white border-t border-slate-200/80 text-center text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="font-medium">
+            Campus Lost &amp; Found &bull; AI-assisted community recovery with privacy protection.
+          </p>
+          <div className="flex items-center gap-4 text-[11px] font-semibold text-slate-400">
+            <span>YOLOv8 + OpenCV Detection</span>
+            <span>&bull;</span>
+            <span>Explainable Top-3 Matches</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
