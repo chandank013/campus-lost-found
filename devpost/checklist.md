@@ -29,7 +29,7 @@ Build mode: learn
   Learner check: Inspect the passing unit test output and seed log; query matches for the seeded blue backpack to verify the exact reason chips.
   Commit: `feat(matcher): implement explainable scoring engine, unit tests, and seed dataset`
 
-- [ ] **3. Manual-First React Frontend (Feed, Report, Details, Matches, and Resolution)**
+- [x] **3. Manual-First React Frontend (Feed, Report, Details, Matches, and Resolution)**
   Becomes usable: A responsive web app in React + Tailwind using plain JavaScript (JSX). Students can browse the 5 seeded items, filter by Type/Category/Status, submit a new post with photo upload and manual dropdowns, view item details with explainable match chips, reveal contact info, and mark items returned.
   Why now: Connects the entire user-facing core journey into a complete, working manual-first product that fulfills the hackathon MVP criteria even before ML is added.
   PRD ref: `prd.md > Screens and Layout`, `prd.md > Item Feed & Filtering`, `prd.md > Privacy-Preserving Contact & Resolution`
