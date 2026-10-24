@@ -15,7 +15,7 @@ Campus Lost & Found allows students and staff to quickly report lost or found it
 
 ---
 
-## Local Run Steps on Windows (PowerShell)
+## Local Run Steps (Windows, macOS, Linux)
 
 ### Prerequisites
 - Node.js 18+ and npm
@@ -26,18 +26,34 @@ Campus Lost & Found allows students and staff to quickly report lost or found it
 
 ### Step 1: Start Computer Vision Service (Flask)
 
-Open a PowerShell terminal:
+Open a terminal in the project root:
 
-```powershell
+```bash
 cd cv-service
 
 # Create virtual environment
 python -m venv venv
+```
 
-# Activate virtual environment
-.\venv\Scripts\Activate.ps1
+**Activate the virtual environment:**
 
-# Install CPU-only PyTorch and dependencies
+- **Windows (PowerShell):**
+  ```powershell
+  .\venv\Scripts\Activate.ps1
+  ```
+- **Windows (Command Prompt):**
+  ```cmd
+  venv\Scripts\activate.bat
+  ```
+- **macOS / Linux:**
+  ```bash
+  source venv/bin/activate
+  ```
+
+**Install dependencies and start the service:**
+
+```bash
+# Install CPU-only PyTorch and requirements
 pip install --extra-index-url https://download.pytorch.org/whl/cpu torch torchvision
 pip install -r requirements.txt
 
@@ -54,13 +70,13 @@ python app.py
 
 ### Step 2: Start Backend API (Express)
 
-Open a second PowerShell terminal:
+Open a second terminal in the project root:
 
-```powershell
+```bash
 cd backend
 
-# Install dependencies (use npm.cmd if PowerShell scripts are restricted)
-npm.cmd install
+# Install dependencies
+npm install
 
 # Configure environment variables
 # Copy .env.example to .env and set your MONGO_URI
@@ -69,20 +85,20 @@ npm.cmd install
 
 #### Seed Demo Data:
 Run the seed script to populate the database with 5 initial items:
-```powershell
-npm.cmd run seed
+```bash
+npm run seed
 ```
 This resets the collection and creates 5 demo items (including a seeded Found Backpack that shares two exact keywords `"zip"` and `"straps"` with the test backpack for demo predictability).
 
 #### Run Automated Tests:
-```powershell
-npm.cmd test
+```bash
+npm test
 ```
 Runs 15 automated unit and integration tests against an isolated in-memory test database, validating CRUD endpoints, contact privacy masking, scoring thresholds, and the detect proxy fallback.
 
 #### Start Express Server:
-```powershell
-npm.cmd start
+```bash
+npm start
 ```
 *Verification:* Express listens on `http://localhost:5000`.
 
@@ -90,16 +106,16 @@ npm.cmd start
 
 ### Step 3: Start Frontend (React + Vite)
 
-Open a third PowerShell terminal:
+Open a third terminal in the project root:
 
-```powershell
+```bash
 cd frontend
 
 # Install dependencies
-npm.cmd install
+npm install
 
 # Start Vite dev server with proxy to backend (:5000)
-npm.cmd run dev
+npm run dev
 ```
 
 *Verification:* Open `http://localhost:5173` in your browser to use the full application.
