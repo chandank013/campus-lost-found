@@ -145,7 +145,7 @@ export default function FeedPage({ onSelectItem, onNavigate }) {
               Showing {items.length} {items.length === 1 ? 'item' : 'items'}
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {items.map((item) => (
               <ItemCard key={item._id} item={item} onClick={onSelectItem} />
             ))}
