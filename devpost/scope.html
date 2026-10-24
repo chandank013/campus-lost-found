@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scope Companion — Campus Lost & Found</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --tag-bg: #0369a1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding: 2rem 1rem; }
+    .container { max-width: 960px; margin: 0 auto; }
+    header { margin-bottom: 2.5rem; text-align: center; }
+    .badge { display: inline-block; background: #064e3b; border: 1px solid var(--success); color: #34d399; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.35rem 0.85rem; border-radius: 9999px; margin-bottom: 1rem; }
+    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-muted); font-size: 1.15rem; max-width: 680px; margin: 0 auto; }
+    .notice { margin-top: 1rem; font-size: 0.85rem; color: #64748b; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.75rem; margin-bottom: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+    h2 { font-size: 1.35rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    p { margin-bottom: 1rem; color: #cbd5e1; }
+    
+    /* Diagram Section */
+    .diagram-wrap { width: 100%; overflow-x: auto; padding: 1rem 0; text-align: center; }
+    svg { max-width: 100%; height: auto; }
+
+    /* Interactive Reveal Tabs */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; }
+    .tab-btn { background: none; border: none; color: var(--text-muted); padding: 0.6rem 1.2rem; font-weight: 600; font-size: 0.95rem; cursor: pointer; border-radius: 0.5rem; transition: all 0.2s ease; }
+    .tab-btn:hover { color: var(--text-main); background: #334155; }
+    .tab-btn.active { color: var(--accent); background: rgba(56, 189, 248, 0.12); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .boundary-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+    .boundary-item { padding: 1rem; border-radius: 0.6rem; border-left: 4px solid; background: #0f172a; }
+    .boundary-item.in-scope { border-left-color: var(--success); }
+    .boundary-item.later { border-left-color: var(--warning); }
+    .boundary-item.cut { border-left-color: var(--danger); }
+    .boundary-item.limitations { border-left-color: var(--accent); }
+    .item-title { font-weight: 700; margin-bottom: 0.25rem; }
+    .in-scope .item-title { color: #34d399; }
+    .later .item-title { color: #fbbf24; }
+    .cut .item-title { color: #f87171; }
+    .limitations .item-title { color: #38bdf8; }
+    .item-desc { font-size: 0.9rem; color: #94a3b8; margin: 0; }
+
+    /* Demo Steps */
+    .steps-container { display: flex; flex-direction: column; gap: 1rem; }
+    .step-item { display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--tag-bg); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.9rem; }
+    .step-content { flex: 1; background: #0f172a; padding: 0.9rem 1.2rem; border-radius: 0.5rem; border: 1px solid var(--card-border); }
+    .step-title { font-weight: 600; color: #e2e8f0; margin-bottom: 0.2rem; }
+    .step-desc { font-size: 0.88rem; color: #94a3b8; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Approved Scope Companion</div>
+      <h1>Campus Lost & Found</h1>
+      <p class="subtitle">AI-assisted campus lost-and-found proof of concept with auto-tagging and explainable top-3 matching.</p>
+      <div class="notice">Canonical document: <code>devpost/scope.md</code> (Status: Approved)</div>
+    </header>
+
+    <!-- The Kernel Card -->
+    <div class="card">
+      <h2>💡 The Unique Kernel</h2>
+      <p><strong>Auto-Tagging + Explainable Transparent Matching:</strong> A lightweight Flask CV microservice (YOLOv8 + OpenCV) auto-detects category and color from uploaded photos. The app is built manual-first with dropdowns always visible; unrecognized items gracefully default to "other" for manual selection. Top-3 matches expose human-readable reasons (<em>"Same category, same color, 2 shared keywords, close date"</em>) so students immediately trust the result.</p>
+    </div>
+
+    <!-- Visual Architecture / Core Loop SVG Diagram -->
+    <div class="card">
+      <h2>🔄 System & Core Loop Workflow</h2>
+      <p>Component sequence and flow: manual-first foundation with Flask detector, dedicated reveal endpoint, and Docker Compose:</p>
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 860 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 1. User Post -->
+          <rect x="20" y="55" width="160" height="95" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+          <text x="100" y="90" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">1. Student Post</text>
+          <text x="100" y="112" text-anchor="middle" fill="#94a3b8" font-size="11">Photo + Details</text>
+          <text x="100" y="128" text-anchor="middle" fill="#94a3b8" font-size="11">Dropdowns Always Visible</text>
+
+          <!-- Arrow 1 -> 2 -->
+          <path d="M185 102 H225" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- 2. AI Auto-Tag -->
+          <rect x="235" y="55" width="170" height="95" rx="10" fill="#1e293b" stroke="#818cf8" stroke-width="2"/>
+          <text x="320" y="85" text-anchor="middle" fill="#818cf8" font-size="13" font-weight="700">2. Flask CV (Added Last)</text>
+          <text x="320" y="105" text-anchor="middle" fill="#cbd5e1" font-size="11">YOLOv8 + OpenCV</text>
+          <text x="320" y="122" text-anchor="middle" fill="#94a3b8" font-size="10">Auto-fills Tags</text>
+          <text x="320" y="136" text-anchor="middle" fill="#94a3b8" font-size="10">Fallback: "other"</text>
+
+          <!-- Arrow 2 -> 3 -->
+          <path d="M410 102 H450" stroke="#818cf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- 3. Express & Mongo Top-3 Matching -->
+          <rect x="460" y="55" width="175" height="95" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+          <text x="547" y="90" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">3. Express + Mongo</text>
+          <text x="547" y="112" text-anchor="middle" fill="#cbd5e1" font-size="11">Top-3 Heuristic Scoring</text>
+          <text x="547" y="128" text-anchor="middle" fill="#cbd5e1" font-size="11">Human-Readable Reasons</text>
+
+          <!-- Arrow 3 -> 4 -->
+          <path d="M640 102 H680" stroke="#34d399" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <!-- 4. Resolution -->
+          <rect x="690" y="55" width="150" height="95" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+          <text x="765" y="85" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="700">4. Resolution</text>
+          <text x="765" y="105" text-anchor="middle" fill="#94a3b8" font-size="11">Separate Reveal API</text>
+          <text x="765" y="120" text-anchor="middle" fill="#94a3b8" font-size="11">(Not in Feed)</text>
+          <text x="765" y="136" text-anchor="middle" fill="#94a3b8" font-size="11">Mark Returned</text>
+
+          <!-- Arrow Marker Definition -->
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#94a3b8"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Structured Boundary Reveals -->
+    <div class="card">
+      <h2>🎯 Proof of Concept Boundaries</h2>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('in-scope')">Now (In Scope)</button>
+        <button class="tab-btn" onclick="showTab('limitations')">Known Limitations</button>
+        <button class="tab-btn" onclick="showTab('later')">Later</button>
+        <button class="tab-btn" onclick="showTab('cut')">Explicitly Cut & Why</button>
+      </div>
+
+      <!-- Tab: In Scope -->
+      <div id="in-scope" class="tab-pane active">
+        <ul class="boundary-list">
+          <li class="boundary-item in-scope">
+            <div class="item-title">React + Tailwind Frontend with Feed Filters</div>
+            <div class="item-desc">Card-based feed with filters (Lost/Found, Category, Active/Returned), image upload with preview, and item details.</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Manual-First Dropdowns with Editable Tags</div>
+            <div class="item-desc">Category and color dropdowns are always visible. Unrecognized items default to "other"; users can freely override any tag.</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Node/Express + MongoDB API</div>
+            <div class="item-desc">CRUD endpoints, seed script (3–4 items), and rule-based heuristic matching with visible reason breakdown.</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Dedicated Contact Reveal Endpoint</div>
+            <div class="item-desc"><code>/api/items/:id/reveal-contact</code> ensures contact details are securely kept out of general feed and public item payloads until explicitly requested.</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Flask Computer Vision Microservice (Added Last)</div>
+            <div class="item-desc">YOLOv8 category inference + OpenCV dominant color extraction; integrates as an enhancement over the manual baseline.</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Local Run Baseline + Docker Compose Final Step</div>
+            <div class="item-desc">Clean local process startup instructions (npm/python) as the reliable baseline, with Docker Compose added as the final convenience layer.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tab: Limitations -->
+      <div id="limitations" class="tab-pane">
+        <ul class="boundary-list">
+          <li class="boundary-item limitations">
+            <div class="item-title">Open Status Transitions</div>
+            <div class="item-desc">Without logins or user roles, anyone with the item page URL can click "Mark as returned" to close an item.</div>
+          </li>
+          <li class="boundary-item limitations">
+            <div class="item-title">Unauthenticated Contact Reveal Endpoint</div>
+            <div class="item-desc">While contact info is cleanly omitted from feed payloads, anyone invoking the reveal endpoint can fetch contact details without claim verification.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tab: Later -->
+      <div id="later" class="tab-pane">
+        <ul class="boundary-list">
+          <li class="boundary-item later">
+            <div class="item-title">Interactive Campus Map</div>
+            <div class="item-desc">Pinpoint exact building or campus spot via Leaflet/Google Maps.</div>
+          </li>
+          <li class="boundary-item later">
+            <div class="item-title">Automated Match Notifications</div>
+            <div class="item-desc">Email or push notifications triggered when high-scoring matches arrive.</div>
+          </li>
+          <li class="boundary-item later">
+            <div class="item-title">Multimodal Semantic Embeddings</div>
+            <div class="item-desc">Vector embeddings (e.g. CLIP) for fuzzy visual and semantic text similarity.</div>
+          </li>
+          <li class="boundary-item later">
+            <div class="item-title">Campus Admin & Security Portal</div>
+            <div class="item-desc">Dedicated dashboard for lost property custody desks with audit logging.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tab: Cut -->
+      <div id="cut" class="tab-pane">
+        <ul class="boundary-list">
+          <li class="boundary-item cut">
+            <div class="item-title">User Accounts & Authentication</div>
+            <div class="item-desc"><strong>Why cut:</strong> Adds auth boilerplate, session handling, and login barriers without demonstrating the CV matching core loop.</div>
+          </li>
+          <li class="boundary-item cut">
+            <div class="item-title">In-App Chat / Messaging</div>
+            <div class="item-desc"><strong>Why cut:</strong> WebSockets and chat history add complex infrastructure; direct student contact (email/phone) works immediately offline.</div>
+          </li>
+          <li class="boundary-item cut">
+            <div class="item-title">Native Mobile Application</div>
+            <div class="item-desc"><strong>Why cut:</strong> High build overhead and distribution friction; responsive web fits the afternoon timeframe.</div>
+          </li>
+          <li class="boundary-item cut">
+            <div class="item-title">Automated Claim Verification Workflows</div>
+            <div class="item-desc"><strong>Why cut:</strong> Social verification (prompting claimant to describe an unseen detail) handles proof without extra code.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 1-Minute Demo Proof -->
+    <div class="card">
+      <h2>⏱️ 1-Minute Demo Finish Line</h2>
+      <div class="steps-container">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Open Localhost with Seed Data</div>
+            <div class="step-desc">Web app loads populated with 3–4 campus items; 1-sentence problem pitch.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Post Found Blue Backpack</div>
+            <div class="step-desc">Upload photo -> Flask detector auto-fills `bag` and `blue` (editable tags) -> Add location "Library 2nd floor" and submit.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Post Lost Backpack</div>
+            <div class="step-desc">Upload different photo -> Add description "black zip, blue bag, lost near canteen" -> Submit.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Aha Moment: Top Match with Reasons</div>
+            <div class="step-desc">Found backpack ranks #1 with clear reasons: "Same category, same color, 2 shared keywords, close date".</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Reveal Contact & Resolve</div>
+            <div class="step-desc">Click "Contact the poster" to call reveal endpoint -> Click "Mark as returned" to clear from active feed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

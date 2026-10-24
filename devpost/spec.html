@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technical Spec Companion — Campus Lost & Found</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --primary: #4338ca;
+      --code-bg: #1e293b;
+      --code-text: #f8fafc;
+      --success: #16a34a;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); line-height: 1.6; padding: 2rem 1rem; }
+    .container { max-width: 980px; margin: 0 auto; }
+    header { margin-bottom: 2.5rem; text-align: center; }
+    .badge { display: inline-block; background: #dcfce7; border: 1px solid #86efac; color: #166534; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.35rem 0.85rem; border-radius: 9999px; margin-bottom: 1rem; }
+    h1 { font-size: 2.25rem; font-weight: 800; color: #1e1b4b; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-muted); font-size: 1.1rem; max-width: 720px; margin: 0 auto; }
+    .notice { margin-top: 0.75rem; font-size: 0.85rem; color: #94a3b8; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.75rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    h2 { font-size: 1.35rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    p { margin-bottom: 1rem; color: #334155; }
+    
+    /* Architecture Diagram */
+    .diagram-wrap { width: 100%; overflow-x: auto; padding: 1rem 0; text-align: center; }
+    svg { max-width: 100%; height: auto; }
+
+    /* Interactive Tabs */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--card-border); padding-bottom: 0.5rem; overflow-x: auto; }
+    .tab-btn { background: none; border: none; color: var(--text-muted); padding: 0.6rem 1.2rem; font-weight: 600; font-size: 0.95rem; cursor: pointer; border-radius: 0.5rem; transition: all 0.2s ease; white-space: nowrap; }
+    .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
+    .tab-btn.active { color: var(--primary); background: #e0e7ff; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.75rem 1rem; border: 1px solid var(--card-border); }
+    th { background: #f1f5f9; font-weight: 700; color: #1e293b; }
+    tr:nth-child(even) { background: #f8fafc; }
+
+    /* Code Blocks */
+    pre { background: var(--code-bg); color: var(--code-text); padding: 1.25rem; border-radius: 0.75rem; overflow-x: auto; font-size: 0.88rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    /* Grid boxes */
+    .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 768px) { .spec-grid { grid-template-columns: 1fr; } }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.25rem; }
+    .box h3 { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; }
+    .box ul { list-style: disc; margin-left: 1.25rem; font-size: 0.9rem; color: #475569; display: flex; flex-direction: column; gap: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">Approved Technical Specification</div>
+      <h1>Campus Lost & Found — Technical Blueprint</h1>
+      <p class="subtitle">Complete technical contract: Express proxy, 100-pt scoring table, YOLOv8 mapping, HSV color vote, and 5-phase build sequence.</p>
+      <div class="notice">Canonical document: <code>devpost/spec.md</code> (Status: Approved)</div>
+    </header>
+
+    <!-- Architecture Diagram -->
+    <div class="card">
+      <h2>📐 System Architecture & Service Communication</h2>
+      <p>Clean 3-tier structure with an asynchronous, non-blocking CV helper service:</p>
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 920 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- React Frontend -->
+          <rect x="20" y="50" width="180" height="120" rx="10" fill="#ffffff" stroke="#4338ca" stroke-width="2"/>
+          <text x="110" y="85" text-anchor="middle" fill="#4338ca" font-size="14" font-weight="700">React + Vite (5173)</text>
+          <text x="110" y="110" text-anchor="middle" fill="#64748b" font-size="11">Tailwind CSS Cards</text>
+          <text x="110" y="128" text-anchor="middle" fill="#64748b" font-size="11">Instant Image Preview</text>
+          <text x="110" y="146" text-anchor="middle" fill="#64748b" font-size="11">Top Matches Panel</text>
+
+          <!-- Arrow Client <-> Express -->
+          <path d="M205 100 H265" stroke="#4338ca" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="235" y="90" text-anchor="middle" fill="#64748b" font-size="10">REST API</text>
+
+          <!-- Express Backend -->
+          <rect x="275" y="40" width="220" height="140" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"/>
+          <text x="385" y="70" text-anchor="middle" fill="#0d9488" font-size="14" font-weight="700">Node/Express (5000)</text>
+          <text x="385" y="95" text-anchor="middle" fill="#64748b" font-size="11">CRUD & Multipart Upload</text>
+          <text x="385" y="113" text-anchor="middle" fill="#64748b" font-size="11">Proxy: POST /api/detect</text>
+          <text x="385" y="131" text-anchor="middle" fill="#64748b" font-size="11">Deterministic Matcher (100pt)</text>
+          <text x="385" y="149" text-anchor="middle" fill="#64748b" font-size="11">Privacy: No Contact Leaks</text>
+
+          <!-- Arrow Express <-> Mongo -->
+          <path d="M500 85 H560" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow)"/>
+          
+          <!-- MongoDB -->
+          <rect x="570" y="50" width="150" height="70" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+          <text x="645" y="80" text-anchor="middle" fill="#16a34a" font-size="13" font-weight="700">MongoDB (27017)</text>
+          <text x="645" y="100" text-anchor="middle" fill="#64748b" font-size="11">Items Collection</text>
+
+          <!-- Arrow Express <-> Flask -->
+          <path d="M500 135 H740" stroke="#818cf8" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow)"/>
+          <text x="620" y="152" text-anchor="middle" fill="#64748b" font-size="10">3s Timeout In-Memory</text>
+
+          <!-- Flask CV Service -->
+          <rect x="750" y="50" width="150" height="120" rx="10" fill="#ffffff" stroke="#818cf8" stroke-width="2"/>
+          <text x="825" y="80" text-anchor="middle" fill="#818cf8" font-size="13" font-weight="700">Flask CV (5001)</text>
+          <text x="825" y="105" text-anchor="middle" fill="#64748b" font-size="11">YOLOv8 Nano (CPU)</text>
+          <text x="825" y="125" text-anchor="middle" fill="#64748b" font-size="11">OpenCV HSV Color</text>
+          <text x="825" y="145" text-anchor="middle" fill="#64748b" font-size="11">Majority Pixel Vote</text>
+
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#64748b"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Interactive Technical Explorer -->
+    <div class="card">
+      <h2>⚙️ Technical Specifications Explorer</h2>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('tab-buildorder')">1. Phased Build Order</button>
+        <button class="tab-btn" onclick="showTab('tab-scoring')">2. Explainable Scoring Engine</button>
+        <button class="tab-btn" onclick="showTab('tab-cv')">3. YOLOv8 & OpenCV Mapping</button>
+        <button class="tab-btn" onclick="showTab('tab-api')">4. API & Privacy Contract</button>
+        <button class="tab-btn" onclick="showTab('tab-files')">5. File Structure</button>
+      </div>
+
+      <!-- Tab: Build Order -->
+      <div id="tab-buildorder" class="tab-pane active">
+        <div class="box">
+          <h3>Agreed Incremental Build Order</h3>
+          <ol style="margin-left: 1.5rem; font-size: 0.95rem; color: #334155; display: flex; flex-direction: column; gap: 0.6rem;">
+            <li><strong>Phase 1: Backend Foundation & Persistence:</strong> Express server, MongoDB Mongoose schema, Multer upload (≤5MB, image/*), CRUD endpoints, contact projection guard, and separate reveal route.</li>
+            <li><strong>Phase 2: Explainable Matcher Engine & Seed Script:</strong> Pure scoring engine (100pt scale), Jest/Node unit tests validating PRD rules, <code>/api/items/:id/matches</code> endpoint, and 5-item seed script with real images.</li>
+            <li><strong>Phase 3: React Frontend (Manual-First Baseline):</strong> Feed page with filters, Report page with editable dropdowns, and Item Detail page with match cards and reveal button. Verified locally.</li>
+            <li><strong>Phase 4: Flask CV Microservice & Express Proxy:</strong> YOLOv8 inference, OpenCV HSV color extraction, Express <code>/api/detect</code> proxy with 3s timeout, and auto-tag UI hookup.</li>
+            <li><strong>Phase 5: Docker Compose & Ship Preparation:</strong> Root multi-container orchestration, end-to-end demo rehearsal, and repo polish.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Tab: Scoring -->
+      <div id="tab-scoring" class="tab-pane">
+        <p><strong>Candidate Qualification:</strong> Opposite-type active item must satisfy <code>(Same Category OR ≥2 Matching Factors)</code> AND <code>Score ≥ 25</code>.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Factor</th>
+              <th>Points</th>
+              <th>Evaluation Rule & Chip Text</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Same Category</strong></td>
+              <td>40 pts</td>
+              <td><code>item.category === candidate.category</code> (excluding 'other')<br><em>Chip: "Same category"</em></td>
+            </tr>
+            <tr>
+              <td><strong>Same Color</strong></td>
+              <td>25 pts</td>
+              <td><code>item.color === candidate.color</code> (excluding 'other')<br><em>Chip: "Same color"</em></td>
+            </tr>
+            <tr>
+              <td><strong>Description Keywords</strong></td>
+              <td>8 or 15 pts</td>
+              <td>Description words excluding stopwords, category, and color words.<br>1 shared word = 8 pts | 2+ shared words = 15 pts<br><em>Chip: "X shared keywords: word1, word2"</em></td>
+            </tr>
+            <tr>
+              <td><strong>Location Overlap</strong></td>
+              <td>10 pts</td>
+              <td>Shared meaningful word in location (excluding digits, 'floor', 'desk', 'room', etc.)<br><em>Chip: "Same location area"</em></td>
+            </tr>
+            <tr>
+              <td><strong>Close Date</strong></td>
+              <td>10 pts</td>
+              <td>Difference in item date ≤ 3 days<br><em>Chip: "Close date"</em></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top: 1rem; font-size: 0.92rem; color: #475569;">
+          <strong>Qualitative Tiers:</strong> Strong match (≥70) | Good match (55–69) | Possible match (25–54).
+        </div>
+      </div>
+
+      <!-- Tab: CV -->
+      <div id="tab-cv" class="tab-pane">
+        <div class="spec-grid">
+          <div class="box">
+            <h3>YOLOv8 Class Mapping</h3>
+            <ul>
+              <li><code>backpack</code>, <code>handbag</code>, <code>suitcase</code> → <strong>bag</strong></li>
+              <li><code>cell phone</code> → <strong>phone</strong></li>
+              <li><code>bottle</code> → <strong>bottle</strong></li>
+              <li><code>umbrella</code> → <strong>umbrella</strong></li>
+              <li><code>laptop</code> → <strong>laptop</strong></li>
+              <li><code>book</code> → <strong>book</strong></li>
+              <li>All others / no detection → <strong>other</strong></li>
+            </ul>
+          </div>
+          <div class="box">
+            <h3>OpenCV HSV Color Classification</h3>
+            <ul>
+              <li><strong>Black:</strong> Value &lt; 45</li>
+              <li><strong>White:</strong> Saturation &lt; 35, Value &gt; 190</li>
+              <li><strong>Grey:</strong> Saturation &lt; 40, 45 ≤ Value ≤ 190</li>
+              <li><strong>Hues (Sat ≥ 40, Val ≥ 45):</strong> Red, Yellow, Green, Blue, Brown</li>
+              <li><strong>Off-Palette Mapping:</strong> Orange → Red/Yellow; Purple/Pink → Red; Beige → White/Brown</li>
+              <li><strong>Rule:</strong> Crop detection box (or 50% center crop fallback), per-pixel classification, majority vote.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: API -->
+      <div id="tab-api" class="tab-pane">
+        <table>
+          <thead>
+            <tr>
+              <th>Method & Endpoint</th>
+              <th>Payload / Params</th>
+              <th>Response & Behavior</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>POST /api/detect</code></td>
+              <td>Multipart file <code>image</code> (in-memory, ≤5MB)</td>
+              <td>Proxies in-memory to Flask (3s timeout); returns <code>{ category, color }</code> without disk write.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/items</code></td>
+              <td><code>?type=&category=&status=</code></td>
+              <td>Returns item array; <code>contact</code> is strictly excluded.</td>
+            </tr>
+            <tr>
+              <td><code>POST /api/items</code></td>
+              <td>Multipart image + form fields</td>
+              <td>Validates image (≤5MB), saves to <code>./uploads</code>, creates MongoDB document.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/items/:id</code></td>
+              <td>None</td>
+              <td>Returns single item details; <code>contact</code> is strictly excluded.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/items/:id/matches</code></td>
+              <td>None</td>
+              <td>Computes heuristic score on opposite active items; returns top 3 meeting PRD rule & score ≥25.</td>
+            </tr>
+            <tr>
+              <td><code>POST /api/items/:id/reveal-contact</code></td>
+              <td>None</td>
+              <td>Returns <code>{ contact: item.contact }</code>.</td>
+            </tr>
+            <tr>
+              <td><code>PATCH /api/items/:id/return</code></td>
+              <td>None</td>
+              <td>Updates <code>status: 'returned'</code>, removing item from active matching.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tab: Files -->
+      <div id="tab-files" class="tab-pane">
+        <pre>
+campus-lost-found/
+├── backend/
+│   ├── src/
+│   │   ├── config/db.js          # MongoDB connection
+│   │   ├── models/Item.js        # Mongoose schema
+│   │   ├── routes/
+│   │   │   ├── detect.js         # Proxy POST /api/detect
+│   │   │   └── items.js          # CRUD, matches, contact reveal
+│   │   ├── services/matcher.js   # Scoring engine & reasons
+│   │   ├── seeds/seed.js         # 5-item seed script
+│   │   └── index.js              # Express app & static uploads
+│   ├── tests/matcher.test.js     # Scoring unit tests
+│   ├── uploads/                  # Local image storage
+│   ├── .env.example
+│   └── package.json
+├── cv-service/
+│   ├── app.py                    # Flask server (:5001)
+│   ├── detector.py               # YOLOv8 category inference
+│   ├── color.py                  # OpenCV HSV extraction
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/           # Navbar, FilterBar, ItemCard, MatchCard
+│   │   ├── pages/                # FeedPage, ReportPage, DetailPage
+│   │   ├── services/api.ts       # Axios client
+│   │   └── App.tsx               # Routes
+│   ├── .env.example
+│   ├── package.json
+│   └── vite.config.ts
+├── devpost/                      # Learning artifacts (scope, prd, spec)
+├── docker-compose.yml
+├── .gitignore
+└── README.md</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

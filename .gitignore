@@ -1,0 +1,25 @@
+# Ignore personal learning context
+/devpost/learner-profile.md
+
+# Dependencies & Environments
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+frontend/dist/
+
+# Uploaded images (preserve sample images and directory)
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/sample-*.jpg
+
+# Environment variables & local credentials
+.env
+.env.*
+!.env.example
+
+# ML weights
+*.pt
