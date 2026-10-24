@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Item } from '../models/Item.js';
+import { findTopMatches } from '../services/matcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -137,6 +138,31 @@ router.post('/', upload.single('image'), async (req, res) => {
       fs.unlinkSync(req.file.path);
     }
     res.status(400).json({ error: 'Failed to create item', message: error.message });
+  }
+});
+
+// GET /api/items/:id/matches — Top 3 explainable opposite-side matches
+router.get('/:id/matches', async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    const oppositeType = item.type === 'lost' ? 'found' : 'lost';
+
+    // Query active items of opposite type, excluding current item, omitting contact
+    const candidates = await Item.find({
+      type: oppositeType,
+      status: 'active',
+      _id: { $ne: item._id }
+    }).select('-contact');
+
+    const topMatches = findTopMatches(item, candidates);
+
+    res.json(topMatches);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to compute matches', message: error.message });
   }
 });
 

@@ -19,7 +19,7 @@ Build mode: learn
   Learner check: Start the backend, call the API in the browser or terminal, and confirm that item JSON is returned with contact details strictly excluded.
   Commit: `feat(backend): add core CRUD, upload storage, and contact privacy endpoints`
 
-- [ ] **2. Explainable Matching Engine, Unit Tests, and 5-Item Seed Dataset**
+- [x] **2. Explainable Matching Engine, Unit Tests, and 5-Item Seed Dataset**
   Becomes usable: The deterministic 100-point matching engine (`matcher.js`), passing unit test suite (`matcher.test.js`) validating all PRD qualification rules, `GET /api/items/:id/matches` endpoint, and database seed script populating 5 realistic campus items with sample images.
   Why now: Delivers and proves the Unique Kernel (explainable matching with visible reason chips) immediately via automated unit tests before frontend code is written.
   PRD ref: `prd.md > Explainable Top-3 Matching`, `prd.md > States and Boundaries` (Seeded State)

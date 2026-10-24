@@ -6,8 +6,10 @@ export async function connectDB(uri = process.env.MONGODB_URI) {
   }
 
   try {
-    const conn = await mongoose.connect(uri);
-    console.log(`[Database] MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri, {
+      dbName: 'campus_lost_found'
+    });
+    console.log(`[Database] MongoDB Connected: ${conn.connection.host} (DB: ${conn.connection.name})`);
     return conn;
   } catch (error) {
     console.error(`[Database Error] Connection failed: ${error.message}`);
