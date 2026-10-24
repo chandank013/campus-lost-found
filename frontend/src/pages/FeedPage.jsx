@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FilterBar from '../components/FilterBar';
 import ItemCard from '../components/ItemCard';
 import { api } from '../services/api';
-import { SearchX, Loader2, Sparkles, Search, Plus, ArrowRight } from 'lucide-react';
+import { SearchX, Loader2, Sparkles } from 'lucide-react';
 
 export default function FeedPage({ onSelectItem, onNavigate }) {
   const [items, setItems] = useState([]);
@@ -46,7 +46,7 @@ export default function FeedPage({ onSelectItem, onNavigate }) {
       <section className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 mb-8 border border-slate-200/80 shadow-xs relative overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
-          {/* Left Text & Actions */}
+          {/* Left Text */}
           <div className="lg:col-span-7 flex flex-col items-start z-10">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-light text-primary-brand text-xs font-extrabold uppercase tracking-wider mb-4 border border-indigo-100">
               <Sparkles size={13} />
@@ -57,27 +57,9 @@ export default function FeedPage({ onSelectItem, onNavigate }) {
               Lost something on campus?
             </h1>
 
-            <p className="text-base text-slate-600 leading-relaxed max-w-xl mb-6 font-normal">
+            <p className="text-base text-slate-600 leading-relaxed max-w-xl font-normal">
               Connect with fellow students and faculty to quickly recover missing belongings. Report what you lost or found to receive instant AI tag suggestions and explainable candidate matches.
             </p>
-
-            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <button
-                onClick={() => onNavigate('report', { type: 'lost' })}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm shadow-sm transition-all active:scale-95 flex-1 sm:flex-initial"
-              >
-                <Search size={16} strokeWidth={2.5} />
-                <span>I lost something</span>
-              </button>
-
-              <button
-                onClick={() => onNavigate('report', { type: 'found' })}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm border border-slate-200 shadow-xs transition-all active:scale-95 flex-1 sm:flex-initial"
-              >
-                <Plus size={18} strokeWidth={2.5} />
-                <span>I found something</span>
-              </button>
-            </div>
           </div>
 
           {/* Right Hero Illustration */}
