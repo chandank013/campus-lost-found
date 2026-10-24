@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Lost & Found — App Map & Architectural Tour</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #059669;
+      --accent-light: #ecfdf5;
+      --code-bg: #f1f5f9;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2.5rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-radius: 9999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+    section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    p { margin-bottom: 1rem; }
+    p:last-child { margin-bottom: 0; }
+    
+    /* Flow Diagram */
+    .flow-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+    }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .step-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .step-content strong {
+      display: block;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .step-content span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Tour Stops */
+    .tour-stop {
+      border-left: 3px solid var(--primary);
+      padding-left: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .tour-stop:last-child { margin-bottom: 0; }
+    .stop-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .stop-path {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+    .stop-desc {
+      font-size: 0.92rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* Pointers Grid */
+    .pointers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .pointer-card {
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+    .pointer-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .pointer-card code {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    .pointer-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Takeaway Box */
+    .takeaway-box {
+      background: var(--accent-light);
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+    .takeaway-box h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #065f46;
+      margin-bottom: 0.5rem;
+    }
+    .takeaway-box p {
+      font-size: 0.9rem;
+      color: #047857;
+      margin-bottom: 0;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">App Map & Reference Guide</span>
+      <h1>Campus Lost & Found</h1>
+      <p class="subtitle">A complete architectural map of the AI-assisted reporting and explainable matching pipeline.</p>
+    </header>
+
+    <!-- Overview -->
+    <section>
+      <h2>Application Architecture</h2>
+      <p>Campus Lost & Found is built as a modular multi-service system designed to keep student data private and the user interface responsive even if machine learning services lag or fail:</p>
+      
+      <div class="flow-diagram">
+        <div class="flow-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <strong>Client Photo Upload (Browser)</strong>
+            <span>User selects photo on Report page &rarr; instant preview rendered client-side via object URL.</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <strong>In-Memory Express Tag Proxy</strong>
+            <span>Express validates 5MB limit in memory and streams file buffer to Flask with 4s abort timeout.</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <strong>Computer Vision Inference (Flask Microservice)</strong>
+            <span>YOLOv8 nano identifies object category &rarr; OpenCV extracts HSV bounding box pixels for dominant color.</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <strong>Auto-Tagging with Manual Control</strong>
+            <span>Category and color auto-fill with "Suggested automatically" chip; student can edit dropdowns freely.</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <strong>Explainable Deterministic Matching</strong>
+            <span>Express queries opposite-side active items &rarr; scores candidates out of 100 &rarr; generates human-readable reason chips.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Code Tour Route -->
+    <section>
+      <h2>Guided Code Tour Route (3 Key Stops)</h2>
+      <p>Follow how a single photo selection journeys through the entire codebase:</p>
+
+      <div class="tour-stop">
+        <div class="stop-title">Stop 1: The Resilient Proxy Boundary</div>
+        <div class="stop-path">backend/src/routes/detect.js &bull; router.post('/')</div>
+        <div class="stop-desc">
+          Notice how multer uses <code>memoryStorage()</code> to ensure no unverified files ever hit the disk during tag previews. If Flask times out or fails, Express catches the abort error and immediately returns <code>{ category: 'other', color: null, fallback: true }</code> with HTTP 200, guaranteeing the browser never freezes.
+        </div>
+      </div>
+
+      <div class="tour-stop">
+        <div class="stop-title">Stop 2: YOLOv8 Detection & HSV Majority-Vote Color Extraction</div>
+        <div class="stop-path">cv-service/detector.py &bull; ItemDetector.detect() &amp; cv-service/color.py</div>
+        <div class="stop-desc">
+          YOLOv8 runs CPU inference and maps COCO class labels to campus categories (e.g. <code>backpack</code> &rarr; <code>bag</code>). It crops the bounding box (or takes a 50% center fallback) and passes it to <code>color.py</code>, which counts HSV pixels across the 8 core campus colors using majority vote.
+        </div>
+      </div>
+
+      <div class="tour-stop">
+        <div class="stop-title">Stop 3: Deterministic Scoring & Reason Generation</div>
+        <div class="stop-path">backend/src/services/matcher.js &bull; calculateMatch()</div>
+        <div class="stop-desc">
+          Instead of opaque neural embeddings, the matcher computes a transparent 100-point score across 5 factors (Category 40, Color 25, Keywords 15, Location 10, Date 10). It strictly enforces the PRD qualification rule (Same category OR &ge;2 factors, score &ge;25) and generates exact chips like <code>"2 shared keywords: straps, zip"</code>.
+        </div>
+      </div>
+    </section>
+
+    <!-- Where to Change Things -->
+    <section>
+      <h2>To Change This, Start Here</h2>
+      <div class="pointers-grid">
+        <div class="pointer-card">
+          <h3>Add a New Category</h3>
+          <code>cv-service/detector.py</code>
+          <p>Add the COCO label to <code>LABEL_TO_CATEGORY</code>, update <code>CATEGORIES</code> in <code>Item.js</code>, and add the option to <code>ReportPage.jsx</code>.</p>
+        </div>
+        <div class="pointer-card">
+          <h3>Tune Match Thresholds</h3>
+          <code>backend/src/services/matcher.js</code>
+          <p>Adjust point weights in <code>calculateMatch()</code> or qualitative tier boundaries (Strong &ge;70, Good 55–69, Possible 25–54).</p>
+        </div>
+        <div class="pointer-card">
+          <h3>Modify Contact Privacy</h3>
+          <code>backend/src/routes/items.js</code>
+          <p>Review <code>.select('-contact')</code> in feed/detail queries and the dedicated <code>/reveal-contact</code> endpoint.</p>
+        </div>
+        <div class="pointer-card">
+          <h3>Add Stopwords</h3>
+          <code>backend/src/services/matcher.js</code>
+          <p>Update <code>LOCATION_STOPWORDS</code> or standard English stopwords in the tokenization filters.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reusable Practice -->
+    <section>
+      <h2>A Practice to Reuse: Plan-First Boundary Definition</h2>
+      <p>
+        In traditional hackathon coding, developers often rush into building a direct client-to-AI integration or jump straight to vector databases, leading to fragile architectures, opaque matches, and deployment blockers.
+      </p>
+      <div class="takeaway-box">
+        <h3>The Core Takeaway</h3>
+        <p>
+          By taking the time in <code>spec.md</code> to specify an <strong>Express proxy buffer</strong> with offline fallback and a <strong>deterministic scoring table</strong> before writing code, we made the entire product testable and resilient. When Flask was offline, the app never crashed; when keywords matched, tests proved the exact score. On your next project with an AI coding agent, <em>always specify the boundary failure modes and mathematical rules before writing implementation code</em>.
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      Campus Lost & Found &bull; Build With AI: Basics &bull; Snapshot Commit: <code>28f350e</code>
+    </footer>
+  </div>
+</body>
+</html>
