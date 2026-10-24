@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
 import itemsRouter from './routes/items.js';
+import detectRouter from './routes/detect.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/items', itemsRouter);
+app.use('/api/detect', detectRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

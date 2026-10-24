@@ -27,7 +27,7 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     }
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, { dbName: 'campus_lost_found_test' });
 
     await new Promise((resolve) => {
       server = app.listen(0, () => {
@@ -40,6 +40,11 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
 
   t.after(async () => {
     if (server) server.close();
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      try {
+        await mongoose.connection.db.dropDatabase();
+      } catch {}
+    }
     await mongoose.disconnect();
     if (mongoServer) await mongoServer.stop();
     if (fs.existsSync(testImagePath)) fs.unlinkSync(testImagePath);
@@ -106,5 +111,17 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     const data = await res.json();
     assert.equal(data.item.status, 'returned');
     assert.equal(data.item.contact, undefined);
+  });
+
+  await t.test('POST /api/detect returns fallback or detection object with 200 OK', async () => {
+    const formData = new FormData();
+    formData.append('image', new Blob([fs.readFileSync(testImagePath)], { type: 'image/jpeg' }), 'test-detect.jpg');
+    const res = await fetch(`${baseUrl}/api/detect`, {
+      method: 'POST',
+      body: formData
+    });
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.ok(data.category);
   });
 });

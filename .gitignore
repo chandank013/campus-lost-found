@@ -4,6 +4,7 @@
 # Dependencies & Environments
 node_modules/
 venv/
+cv-service/venv/
 __pycache__/
 *.pyc
 

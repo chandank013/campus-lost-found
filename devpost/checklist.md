@@ -39,7 +39,7 @@ Build mode: learn
   Learner check: Open `http://localhost:5173` in browser, filter the feed, post a lost item, view its detail page with top matches and reason chips, reveal the contact, and mark an item returned.
   Commit: `feat(frontend): implement responsive manual-first web app with feed, report, and matches`
 
-- [ ] **4. Flask Computer Vision Service & Express Tag Proxy**
+- [x] **4. Flask Computer Vision Service & Express Tag Proxy**
   Becomes usable: The Flask microservice running YOLOv8 and OpenCV HSV color extraction, pre-downloaded weights, sample backpack test image committed, Express proxy `POST /api/detect` with in-memory validation and 3-second timeout fallback, and frontend auto-fill tag suggestions with "Suggested automatically. Please check".
   Why now: Adds the AI enhancement layer onto the already-stable manual-first web app, proving the full vision without risking the baseline product.
   PRD ref: `prd.md > Manual-First Reporting & AI Auto-Tagging`, `prd.md > States and Boundaries` (CV Offline / Error State)
@@ -61,7 +61,7 @@ Build mode: learn
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — Slice 3 (Manual-first web application verified in browser)
+- [x] Early usable behavior explored — Slice 3 (Manual-first web application verified in browser)
 - [ ] Final kick-the-tires exploration and feedback completed — Slice 5 (Full stack with CV and Docker Compose)
 
 ## Final Review

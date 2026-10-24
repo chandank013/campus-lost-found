@@ -48,10 +48,12 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
       const formData = new FormData();
       formData.append('image', file);
       const suggestions = await api.detectTags(formData);
-      if (suggestions && suggestions.category) {
+      if (suggestions && suggestions.category && !suggestions.fallback && suggestions.category !== 'other') {
         setCategory(suggestions.category);
         if (suggestions.color) setColor(suggestions.color);
         setAutoTagNote('Suggested automatically. Please check.');
+      } else {
+        setAutoTagNote('');
       }
     } catch {
       // Graceful fallback: manual selection
