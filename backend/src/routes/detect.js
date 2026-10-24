@@ -32,9 +32,9 @@ router.post('/', memoryUpload.single('image'), async (req, res) => {
       req.file.originalname || 'detect.jpg'
     );
 
-    // Call Flask with an explicit 3-second abort timeout
+    // Call Flask with a 4-second abort timeout (~3s spec guidance with cold-start cushion)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const flaskResponse = await fetch(`${flaskUrl}/detect`, {
       method: 'POST',

@@ -49,7 +49,7 @@ Build mode: learn
   Learner check: On the Report page, upload a backpack photo; verify the category `bag` and color `blue` auto-fill with the suggested label, and verify you can freely edit the dropdowns.
   Commit: `feat(cv): integrate YOLOv8 and OpenCV color detection with Express proxy and auto-tagging`
 
-- [ ] **5. Docker Compose Orchestration & Demo Verification**
+- [x] **5. Docker Compose Orchestration & Demo Verification**
   Becomes usable: Complete multi-container orchestration running MongoDB, Flask, Express, and React with a real `docker-compose up --build` run (if Docker Desktop is available), along with verification of the complete 1-minute demo flow.
   Why now: Final packaging step that guarantees anyone can run the whole stack cleanly with zero environment conflicts.
   PRD ref: `prd.md > What We're Building`
@@ -62,7 +62,7 @@ Build mode: learn
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — Slice 3 (Manual-first web application verified in browser)
-- [ ] Final kick-the-tires exploration and feedback completed — Slice 5 (Full stack with CV and Docker Compose)
+- [x] Final kick-the-tires exploration and feedback completed — Slice 5 (Full stack with CV and Docker Compose)
 
 ## Final Review
 
