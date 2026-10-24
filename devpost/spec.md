@@ -51,8 +51,8 @@ Implements `prd.md > The Core Journey`.
 ```
 
 ## Stack
-- **Frontend:** React 18 / 19, Vite, Tailwind CSS v3/v4, Lucide-React.
-  - *Rationale:* Fast development server, lightweight bundle, utility-first styling for clean campus design.
+- **Frontend:** React 18 / 19, Vite (plain JavaScript/JSX), Tailwind CSS v3/v4, Lucide-React.
+  - *Rationale:* Fast development server, lightweight bundle, zero TypeScript compilation overhead for quick prototyping, utility-first styling for clean campus design.
   - *Docs:* [Vite Docs](https://vitejs.dev/), [React Docs](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/)
 - **Backend API:** Node.js (v18+), Express, Mongoose, Multer.
   - *Rationale:* High-performance asynchronous I/O, straightforward schema validation with Mongoose, standard multipart handling via Multer.
@@ -192,13 +192,13 @@ Carried forward from `prd.md > Look and Feel`.
 ### Frontend Components (`frontend/src/`)
 Implements `prd.md > Screens and Layout`.
 
-- `Navbar.tsx`: Implements `prd.md > 1. Main Feed`. Displays branding and dual action buttons ("I lost something", "I found something").
-- `FilterBar.tsx`: Implements `prd.md > Item Feed & Filtering`. Controls Type, Category, and Status pills.
-- `ItemCard.tsx`: Implements `prd.md > Cards Grid`. Renders thumbnail, badges, tags, truncated description, date, and location. Contact info is strictly excluded.
-- `FeedGrid.tsx`: Implements `prd.md > Empty State` and responsive grid layout (1 col mobile, 2-3 col desktop).
-- `ReportForm.tsx`: Implements `prd.md > 2. Report Item Page`. Handles photo select, preview, async call to `/api/detect`, manual-first dropdowns, validation, and submission.
-- `ItemDetail.tsx`: Implements `prd.md > 3. Item Detail & Match Page`. Displays full details, contact reveal trigger, "Mark as returned" modal, and the Top Matches panel.
-- `MatchCard.tsx`: Implements `prd.md > Explainable Top-3 Matching`. Displays match tier badge, score breakdown, applied reason chips, and links to candidate item.
+- `Navbar.jsx`: Implements `prd.md > 1. Main Feed`. Displays branding and dual action buttons ("I lost something", "I found something").
+- `FilterBar.jsx`: Implements `prd.md > Item Feed & Filtering`. Controls Type, Category, and Status pills.
+- `ItemCard.jsx`: Implements `prd.md > Cards Grid`. Renders thumbnail, badges, tags, truncated description, date, and location. Contact info is strictly excluded.
+- `FeedGrid.jsx`: Implements `prd.md > Empty State` and responsive grid layout (1 col mobile, 2-3 col desktop).
+- `ReportForm.jsx`: Implements `prd.md > 2. Report Item Page`. Handles photo select, preview, async call to `/api/detect`, manual-first dropdowns, validation, and submission.
+- `ItemDetail.jsx`: Implements `prd.md > 3. Item Detail & Match Page`. Displays full details, contact reveal trigger, "Mark as returned" modal, and the Top Matches panel.
+- `MatchCard.jsx`: Implements `prd.md > Explainable Top-3 Matching`. Displays match tier badge, score breakdown, applied reason chips, and links to candidate item.
 
 ### Backend Endpoints (`backend/src/routes/`)
 Implements `prd.md > Features and Behavior`.
@@ -354,25 +354,23 @@ campus-lost-found/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.tsx            # Header & post buttons
-│   │   │   ├── FilterBar.tsx         # Type/category/status filters
-│   │   │   ├── ItemCard.tsx          # Feed item card
-│   │   │   ├── MatchCard.tsx         # Item detail match card with chips
-│   │   │   └── Modal.tsx             # Confirmation dialogs
+│   │   │   ├── Navbar.jsx            # Header & post buttons
+│   │   │   ├── FilterBar.jsx         # Type/category/status filters
+│   │   │   ├── ItemCard.jsx          # Feed item card
+│   │   │   ├── MatchCard.jsx         # Item detail match card with chips
+│   │   │   └── Modal.jsx             # Confirmation dialogs
 │   │   ├── pages/
-│   │   │   ├── FeedPage.tsx          # Main home view (/)
-│   │   │   ├── ReportPage.tsx        # Post creation view (/report)
-│   │   │   └── DetailPage.tsx        # Item details and matches (/items/:id)
+│   │   │   ├── FeedPage.jsx          # Main home view (/)
+│   │   │   ├── ReportPage.jsx        # Post creation view (/report)
+│   │   │   └── DetailPage.jsx        # Item details and matches (/items/:id)
 │   │   ├── services/
-│   │   │   └── api.ts                # Axios API client
-│   │   ├── types/
-│   │   │   └── item.ts               # TypeScript interfaces
-│   │   ├── App.tsx                   # Router setup
-│   │   └── main.tsx
+│   │   │   └── api.js                # Axios API client
+│   │   ├── App.jsx                   # Router setup
+│   │   └── main.jsx
 │   ├── index.html
 │   ├── package.json
 │   ├── tailwind.config.js
-│   ├── vite.config.ts
+│   ├── vite.config.js
 │   └── .env.example
 ├── devpost/
 │   ├── learner-profile.md
