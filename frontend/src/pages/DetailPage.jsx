@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, MapPin, Calendar, Check, Phone, Copy, 
-  Sparkles, AlertCircle, Loader2, ShieldCheck, ArrowRight, Package
+  Sparkles, AlertCircle, Loader2, ShieldCheck, ArrowRight, Package,
+  Lock, KeyRound, X
 } from 'lucide-react';
 import { api } from '../services/api';
 import MatchCard from '../components/MatchCard';
-import Modal from '../components/Modal';
 
 export default function DetailPage({ itemId, onBack, onSelectMatch }) {
   const [item, setItem] = useState(null);
@@ -18,8 +18,16 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
   const [revealing, setRevealing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Return modal state
+  // Challenge modal state (for found items with private questions)
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [challengeAnswer, setChallengeAnswer] = useState('');
+  const [challengeError, setChallengeError] = useState(null);
+  const [submittingChallenge, setSubmittingChallenge] = useState(false);
+
+  // Return modal state (requires manage code)
   const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnCode, setReturnCode] = useState('');
+  const [returnError, setReturnError] = useState(null);
   const [markingReturned, setMarkingReturned] = useState(false);
 
   const loadData = async () => {
@@ -46,7 +54,17 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
     }
   }, [itemId]);
 
-  const handleRevealContact = async () => {
+  const handleContactClick = () => {
+    if (item?.privateQuestion) {
+      setChallengeAnswer('');
+      setChallengeError(null);
+      setShowChallengeModal(true);
+    } else {
+      handleDirectReveal();
+    }
+  };
+
+  const handleDirectReveal = async () => {
     setRevealing(true);
     try {
       const data = await api.revealContact(itemId);
@@ -58,6 +76,27 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
     }
   };
 
+  const handleChallengeSubmit = async (e) => {
+    e.preventDefault();
+    if (!challengeAnswer.trim()) {
+      setChallengeError('Please enter an answer to the verification question.');
+      return;
+    }
+
+    setSubmittingChallenge(true);
+    setChallengeError(null);
+    try {
+      const data = await api.revealContact(itemId, challengeAnswer.trim());
+      setRevealedContact(data.contact);
+      setShowChallengeModal(false);
+      setChallengeAnswer('');
+    } catch (err) {
+      setChallengeError(err.response?.data?.message || err.response?.data?.error || 'Incorrect answer. Please try again.');
+    } finally {
+      setSubmittingChallenge(false);
+    }
+  };
+
   const handleCopyContact = () => {
     if (!revealedContact) return;
     navigator.clipboard.writeText(revealedContact);
@@ -65,14 +104,22 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleConfirmReturn = async () => {
+  const handleConfirmReturn = async (e) => {
+    e.preventDefault();
+    if (!returnCode.trim()) {
+      setReturnError('Please enter your one-time manage code.');
+      return;
+    }
+
     setMarkingReturned(true);
+    setReturnError(null);
     try {
-      const res = await api.markReturned(itemId);
+      const res = await api.markReturned(itemId, returnCode.trim());
       setItem(res.item);
       setShowReturnModal(false);
+      setReturnCode('');
     } catch (err) {
-      alert('Failed to mark item as returned: ' + (err.response?.data?.message || err.message));
+      setReturnError(err.response?.data?.error || err.response?.data?.message || 'Invalid manage code. Please check the code provided when the item was reported.');
     } finally {
       setMarkingReturned(false);
     }
@@ -174,6 +221,12 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
               <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#e0f2fe] text-[#0284c7] capitalize">
                 Color: {item.color}
               </span>
+              {item.privateQuestion && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                  <Lock size={12} />
+                  <span>Verification Protected</span>
+                </span>
+              )}
             </div>
 
             {/* Title / Description */}
@@ -249,18 +302,30 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
                   </div>
                 ) : (
                   <button
-                    onClick={handleRevealContact}
+                    onClick={handleContactClick}
                     disabled={revealing}
                     className="w-full py-3.5 rounded-2xl bg-primary hover:bg-primary-hover text-white font-black text-sm shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
                   >
-                    {revealing ? <Loader2 size={18} className="animate-spin" /> : <Phone size={18} />}
-                    <span>Contact the poster</span>
+                    {revealing ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : item.privateQuestion ? (
+                      <Lock size={18} />
+                    ) : (
+                      <Phone size={18} />
+                    )}
+                    <span>
+                      {item.privateQuestion ? 'Answer Question to Contact Poster' : 'Contact the poster'}
+                    </span>
                   </button>
                 )}
 
                 {/* Mark as Returned Button */}
                 <button
-                  onClick={() => setShowReturnModal(true)}
+                  onClick={() => {
+                    setReturnCode('');
+                    setReturnError(null);
+                    setShowReturnModal(true);
+                  }}
                   className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                 >
                   <ShieldCheck size={15} className="text-slate-500" />
@@ -319,15 +384,150 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
 
       </div>
 
-      {/* Confirmation Modal */}
-      <Modal
-        isOpen={showReturnModal}
-        title="Mark item as returned?"
-        message="This item will be marked as resolved, removed from active candidate matching, and safely archived."
-        confirmText={markingReturned ? 'Updating...' : 'Yes, mark returned'}
-        onConfirm={handleConfirmReturn}
-        onCancel={() => setShowReturnModal(false)}
-      />
+      {/* Ownership Verification Challenge Modal */}
+      {showChallengeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary-brand/10 text-primary-brand flex items-center justify-center">
+                  <Lock size={18} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Ownership Challenge</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowChallengeModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              The finder has set a verification question to confirm rightful ownership before disclosing contact details:
+            </p>
+
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-4 text-left">
+              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Question
+              </span>
+              <p className="text-sm font-bold text-slate-800 leading-snug">
+                {item.privateQuestion}
+              </p>
+            </div>
+
+            <form onSubmit={handleChallengeSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Your Answer
+                </label>
+                <input
+                  type="text"
+                  value={challengeAnswer}
+                  onChange={(e) => setChallengeAnswer(e.target.value)}
+                  placeholder="Type your answer here..."
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all"
+                />
+              </div>
+
+              {challengeError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>{challengeError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChallengeModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingChallenge}
+                  className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  {submittingChallenge && <Loader2 size={14} className="animate-spin" />}
+                  <span>Verify &amp; Reveal</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return Resolution Modal (Requires Manage Code) */}
+      {showReturnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <KeyRound size={18} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Mark as Returned</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReturnModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              Enter the one-time <strong>Manage Code</strong> you received when reporting this item to confirm its return:
+            </p>
+
+            <form onSubmit={handleConfirmReturn} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Manage Code
+                </label>
+                <input
+                  type="text"
+                  value={returnCode}
+                  onChange={(e) => setReturnCode(e.target.value)}
+                  placeholder="e.g. RET-A1B2C3"
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono uppercase text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all tracking-wider"
+                />
+              </div>
+
+              {returnError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>{returnError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReturnModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={markingReturned}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  {markingReturned && <Loader2 size={14} className="animate-spin" />}
+                  <span>Confirm Return</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </main>
   );

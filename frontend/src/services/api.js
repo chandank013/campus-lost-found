@@ -29,15 +29,16 @@ export const api = {
     return res.data;
   },
 
-  // Reveal contact information
-  revealContact: async (id) => {
-    const res = await axios.post(`${API_BASE}/items/${id}/reveal-contact`);
+  // Reveal contact information (with optional verification answer for challenged items)
+  revealContact: async (id, answer = null) => {
+    const payload = answer !== null ? { answer } : {};
+    const res = await axios.post(`${API_BASE}/items/${id}/reveal-contact`, payload);
     return res.data;
   },
 
-  // Mark item as returned
-  markReturned: async (id) => {
-    const res = await axios.patch(`${API_BASE}/items/${id}/return`);
+  // Mark item as returned (requires one-time manage code)
+  markReturned: async (id, manageCode) => {
+    const res = await axios.patch(`${API_BASE}/items/${id}/return`, { manageCode });
     return res.data;
   },
 

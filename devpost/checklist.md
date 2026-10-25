@@ -84,3 +84,21 @@ Reflection: Offered to learner: "What would you do differently next time you sta
 Activity mode: Live app and editor, paired with standalone `devpost/app-map.html` guide.
 
 ## Revisions
+
+- [x] **Slice 6: Ownership Verification Challenge & Item Management Codes**
+  Becomes usable:
+    1. Found item posts can include an optional private question and answer. The answer is stored hashed (trimmed, lowercased, SHA-256) and never returned by any endpoint. Claimants must answer correctly (max 3 attempts per item before a 5-minute lockout) to reveal contact info. Items without questions preserve the default direct reveal.
+    2. Item creation returns a one-time manage code shown once in the UI. Marking an item as returned (`PATCH /api/items/:id/return`) requires providing this code, preventing unauthorized closure.
+  Why now: Directly addresses the POC boundary's known limitations (open return transitions and unauthenticated reveal scraping) before final submission, without the complexity of full user accounts.
+  PRD ref: `prd.md > The Core Journey` (Steps 4 & 6), `prd.md > Privacy-Preserving Contact & Resolution`
+  Spec ref: `spec.md > Backend Endpoints`, `spec.md > Data Model`
+  Build:
+    - Update `Item` schema with `privateQuestion`, `privateAnswerHash` (select: false), `verificationAttempts`, `lockoutUntil`, and `manageCodeHash` (select: false).
+    - Update `POST /api/items` to generate/hash manage code, accept optional private question/answer on found items, and return `manageCode` once.
+    - Update `POST /api/items/:id/reveal-contact` with attempt limit, lockout timer, and hash verification.
+    - Update `PATCH /api/items/:id/return` to require and verify manage code.
+    - Update frontend: `ReportPage` adds private question inputs for found items and displays one-time manage code on creation; `DetailPage` prompts challenge before contact reveal and requires manage code to mark returned.
+  Verify (mechanical):
+    - Run automated tests in `backend/tests/api.test.js` validating: wrong answer reveals nothing (401), correct answer reveals contact (200), lockout triggered after 3 failures (429), return without code rejected (400), return with wrong code rejected (403), and neither answer hash nor code hash is ever returned.
+    - Frontend build compiles cleanly (`npm run build`).
+  Commit: `feat(security): add private ownership verification challenge and one-time item manage codes`

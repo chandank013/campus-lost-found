@@ -204,12 +204,12 @@ Implements `prd.md > Screens and Layout`.
 Implements `prd.md > Features and Behavior`.
 
 - `POST /api/detect`: Implements `prd.md > Manual-First Reporting & AI Auto-Tagging`. Uses in-memory Multer storage (`multer.memoryStorage()`) with strict limits (images only, max 5 MB). Forwards file buffer to Flask `POST http://localhost:5001/detect` with a 3-second timeout. Returns `{ category, color }` without writing to disk.
-- `GET /api/items`: Implements `prd.md > Item Feed & Filtering`. Filters by `type`, `category`, `status`. Uses Mongoose `.select('-contact')` to strictly omit contact details.
-- `POST /api/items`: Implements `prd.md > 2. Report Item Page`. Disk Multer storage validates image (≤5MB, mimetype `image/*`), writes to `./uploads/`, inserts document.
-- `GET /api/items/:id`: Returns single item details, strictly omitting `contact` (`.select('-contact')`).
+- `GET /api/items`: Implements `prd.md > Item Feed & Filtering`. Filters by `type`, `category`, `status`. Uses Mongoose `.select('-contact -privateAnswerHash -manageCodeHash')` to strictly omit sensitive fields.
+- `POST /api/items`: Implements `prd.md > 2. Report Item Page`. Disk Multer storage validates image (≤5MB, mimetype `image/*`), writes to `./uploads/`, generates one-time `manageCode` (`RET-XXXX`), stores SHA-256 `manageCodeHash`. For found items, optionally accepts `privateQuestion` and `privateAnswer` (stored as SHA-256 `privateAnswerHash`). Returns created item containing `manageCode` (one-time view), strictly omitting `contact`, `privateAnswerHash`, and `manageCodeHash`.
+- `GET /api/items/:id`: Returns single item details, strictly omitting `contact`, `privateAnswerHash`, and `manageCodeHash`. Includes `privateQuestion` if configured.
 - `GET /api/items/:id/matches`: Implements `prd.md > Explainable Top-3 Matching`. Queries opposite-side active items, runs scoring algorithm, returns top 3 items meeting qualification rule and score ≥ 25.
-- `POST /api/items/:id/reveal-contact`: Implements `prd.md > Privacy-Preserving Contact & Resolution`. Returns `{ contact: item.contact }`.
-- `PATCH /api/items/:id/return`: Implements `prd.md > Privacy-Preserving Contact & Resolution`. Sets `status: 'returned'`.
+- `POST /api/items/:id/reveal-contact`: Implements `prd.md > Privacy-Preserving Contact & Resolution`. If item has a `privateQuestion`, requires `{ answer }` in request body. Validates trimmed lowercased SHA-256 hash. Allows max 3 failed attempts before a 5-minute lockout (HTTP 429). On success (or if no private question), returns `{ contact: item.contact }`.
+- `PATCH /api/items/:id/return`: Implements `prd.md > Privacy-Preserving Contact & Resolution`. Requires `{ manageCode }` in request body. Validates against stored `manageCodeHash`. Rejects missing (400) or incorrect (403) code. Sets `status: 'returned'`.
 
 ### Flask CV Microservice (`cv-service/`)
 - `POST /detect`: Accepts multipart file `image`. Runs YOLOv8 inference. If detected, extracts bounding box; otherwise uses center crop (middle 50% width/height). Converts crop to HSV and applies pixel classification. Returns JSON `{ category: string, color: string }`.
@@ -309,7 +309,14 @@ const itemSchema = new mongoose.Schema({
   imageUrl: { type: String, required: true },
   contact: { type: String, required: true }, // Strictly excluded from list and detail API responses
   currentLocation: { type: String, default: '' }, // For found items
-  status: { type: String, enum: ['active', 'returned'], default: 'active' }
+  status: { type: String, enum: ['active', 'returned'], default: 'active' },
+  // Private ownership verification challenge (found items)
+  privateQuestion: { type: String, default: '' },
+  privateAnswerHash: { type: String, default: null, select: false },
+  verificationAttempts: { type: Number, default: 0 },
+  lockoutUntil: { type: Date, default: null },
+  // Item resolution authorization
+  manageCodeHash: { type: String, default: null, select: false }
 }, { timestamps: true });
 ```
 

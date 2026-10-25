@@ -18,7 +18,8 @@ Campus Lost & Found allows students and campus staff to report lost or found bel
 - **Manual-First Fallback:** Dropdowns remain 100% editable at all times. If the CV service is offline or times out, the application falls back gracefully with zero error banners or form blockers.
 - **Explainable Matching Engine:** Deterministic scoring algorithm surfaces top 3 opposite-side matches with clear reason chips (e.g., `"Same category"`, `"Same color"`, `"2 shared keywords: straps, zip"`, `"Same location area"`).
 - **Privacy-Preserving Contact Reveal:** Contact phone/email is strictly excluded from list and detail payloads (`.select('-contact')`) and revealed only when a claimant clicks **"Contact the poster"**.
-- **Single-Click Lifecycle Resolution:** Found or claimed items can be marked as returned directly from the item detail page without authentication overhead.
+- **Private Ownership Verification Challenge:** Found item posters can set an optional ownership question. The answer is stored hashed (trimmed, lowercased, SHA-256) and never returned by any endpoint. Claimants must answer correctly (max 3 attempts per item before a 5-minute lockout) to reveal contact info.
+- **Authorized Lifecycle Resolution via Manage Codes:** On creation, each item receives a one-time manage code (`RET-XXXX`) shown once in the UI. Marking an item as returned (`PATCH /api/items/:id/return`) strictly requires this code to prevent unauthorized closure.
 - **Responsive Filtering:** Filter the feed by report type (Lost / Found), category, and status (Active / Returned).
 
 ---
@@ -239,12 +240,12 @@ npm test
 
 | Method | Endpoint | Description | Privacy / Auth Note |
 |---|---|---|---|
-| `GET` | `/api/items` | Query items by `type`, `category`, `status` | Contact info strictly omitted |
-| `POST` | `/api/items` | Report new item (multipart form with image) | Contact info omitted from response |
-| `GET` | `/api/items/:id` | Get item details | Contact info strictly omitted |
-| `GET` | `/api/items/:id/matches` | Get top-3 scored candidates with chips | Excludes contact info |
-| `POST` | `/api/items/:id/reveal-contact` | Reveal contact details for an item | Returns `{ contact: string }` |
-| `PATCH` | `/api/items/:id/return` | Mark item as returned | Updates item status |
+| `GET` | `/api/items` | Query items by `type`, `category`, `status` | Contact info and internal hashes strictly omitted |
+| `POST` | `/api/items` | Report new item (multipart form with image) | Returns one-time `manageCode`; contact and hashes omitted |
+| `GET` | `/api/items/:id` | Get item details | Contact info and internal hashes strictly omitted |
+| `GET` | `/api/items/:id/matches` | Get top-3 scored candidates with chips | Excludes contact info and hashes |
+| `POST` | `/api/items/:id/reveal-contact` | Reveal contact details for an item | Requires `{ answer }` if private question set; max 3 attempts then lockout |
+| `PATCH` | `/api/items/:id/return` | Mark item as returned | Requires `{ manageCode }` matching code issued on creation |
 | `POST` | `/api/detect` | In-memory tag suggestion proxy | Proxies to Flask with 4s timeout fallback |
 
 ### Flask Microservice (`http://localhost:5001`)
@@ -272,7 +273,8 @@ This project was built following a strict plan-first methodology under the **Bui
 
 1. **Object Detection Vocabulary:** YOLOv8 nano is trained on the standard COCO dataset. It accurately detects bags (`backpack`, `handbag`, `suitcase`), phones (`cell phone`), bottles, umbrellas, laptops, and books. Other items default to `"other"`, relying on manual dropdown selection.
 2. **Lighting Sensitivity in Color Extraction:** HSV color classification uses majority vote on the bounding box. Extreme reflections, strong shadows, or complex multi-color patterns can lead to unexpected dominant color votes.
-3. **No User Accounts / Authentication:** Deliberately scoped out for an afternoon proof of concept; contact info is protected by masking from public feeds rather than session logins.
+3. **No User Accounts / Session Logins:** Deliberately scoped out for an afternoon proof of concept. Protection is achieved via lightweight per-item manage codes (required to mark items returned) and optional private verification questions (with 3-attempt limits and lockouts) rather than full session login infrastructure. If a poster loses their manage code, they cannot mark their item returned without direct database assistance.
+4. **Direct Contact Reveal on Lost Items:** While found items can be protected with private ownership challenges, lost items reveal contact on request without a challenge so finders can reach the owner quickly.
 
 ---
 

@@ -49,6 +49,31 @@ const itemSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'returned'],
     default: 'active'
+  },
+  // Private ownership verification challenge (found items)
+  privateQuestion: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  privateAnswerHash: {
+    type: String,
+    default: null,
+    select: false
+  },
+  verificationAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockoutUntil: {
+    type: Date,
+    default: null
+  },
+  // Item resolution authorization
+  manageCodeHash: {
+    type: String,
+    default: null,
+    select: false
   }
 }, {
   timestamps: true

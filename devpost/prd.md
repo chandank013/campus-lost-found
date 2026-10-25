@@ -12,9 +12,9 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 1. **Arrival & Feed:** The student lands on the home feed. They see seeded active lost/found items arranged in a responsive grid, with filters at the top and prominent "I lost something" and "I found something" action buttons.
 2. **Reporting an Item:** The user clicks either button and navigates to the Report page with the type pre-selected.
 3. **Photo & Auto-Tagging:** The user uploads a photo (required, images only, ~5 MB max). An immediate preview displays. The Flask detector analyzes the image in the background; category and color dropdowns remain always visible and editable. If recognized, tags auto-fill with a subtle "Suggested automatically. Please check" label; if unrecognized or slow, category defaults to "other" with manual selection.
-4. **Submission:** The user fills in category, color, description, location, date, required contact details (and "Where is the item now?" for found items), and submits.
+4. **Submission:** The user fills in category, color, description, location, date, required contact details (and "Where is the item now?" plus an optional private question/answer for found items), and submits. The system issues a one-time manage code displayed once for the poster to save.
 5. **Payoff on Detail Page:** Upon saving, the user is redirected directly to the new item's detail page. The item is displayed alongside the "Top matches" panel, presenting up to 3 opposite-side active items that have the same category OR at least two matching reasons.
-6. **Claim & Resolution:** A user clicks "Contact the poster" on a matching item to reveal email/phone details from the separate reveal endpoint. Offline verification occurs via the hint reminder ("Ask for a detail not visible in the photo"). Once resolved, a user clicks "Mark as returned" (with confirmation), archiving the item from active matching.
+6. **Claim & Resolution:** A user clicks "Contact the poster" on a matching item. If the item has a private question, the claimant must answer it correctly (max 3 attempts before temporary lockout) to reveal contact info. Once resolved, the poster marks the item as returned by providing their one-time manage code, archiving the item from active matching.
 
 ## Screens and Layout
 
@@ -40,6 +40,8 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
   6. Date input (date picker defaulting to today, editable) — Required.
   7. Contact info input (email or phone) — Required, accompanied by privacy notice: *"Contact info is hidden from the feed and shown only when someone clicks Contact the poster."*
   8. Current custody input (*Found items only*): "Where is the item now?" (e.g., "Left at Library 2nd floor desk" or "With me, contact to claim") — Required for Found.
+  9. Private verification question & answer (*Found items only, Optional*): "Set an ownership question only the true owner can answer" and "Expected answer (stored hashed, case-insensitive, never revealed publicly)".
+- Submission payoff: On successful creation, a one-time manage code (e.g. `RET-XXXX`) is displayed once in a modal/banner with a copy button and a notice that it is required to mark the item as returned later.
 - Inline validation errors display under empty or invalid required fields upon submit without resetting user input.
 
 ### 3. Item Detail & Match Page (`/items/:id`)
@@ -47,8 +49,8 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 - Desktop layout: 2 columns (Item Details on left, Top Matches on right). Mobile layout: vertically stacked.
 - **Left Column (Item Details):** Full-size photo, Lost/Found badge, category & color tags, full description, location, date, status, and "Where it is now" (if found).
 - **Action Area:** 
-  - "Contact the poster" button: When clicked, fetches contact info from `/api/items/:id/reveal-contact`, replaces button with phone/email and a "Copy" button, and shows guidance note: *"Ask them to describe one detail that isn't in the photo before handing over an item."*
-  - "Mark as returned" button: Triggers modal confirmation *"Mark this item as returned? It will be removed from matching."* On confirm, updates status to "Returned", disables further matching, and replaces action buttons with *"This item has been returned."*
+  - "Contact the poster" button: When clicked, if the item has a private question, prompts the claimant with the question in a challenge modal. Validates the answer via `/api/items/:id/reveal-contact`. Caps attempts at 3 before a 5-minute lockout. If correct (or if no private question was configured), reveals contact phone/email and a "Copy" button.
+  - "Mark as returned" button: Prompts modal with an input for the item's one-time manage code. On submit with valid code, updates status to "Returned", disables further matching, and replaces action buttons with *"This item has been returned."* Requests without the valid code are rejected.
 - **Right Column ("Top matches"):**
   - Up to 3 opposite-side active items ordered by match score.
   - **Match Qualification Rule:** An item is only qualified as a match if it shares the **same category** OR has **at least two matching reasons** (e.g., same color + shared keyword).
@@ -112,9 +114,11 @@ Source: `scope.md > The Unique Kernel`.
 Source: `scope.md > Core Loop`, `scope.md > Known Limitations`.
 - As a claimant, I want to reveal contact info and mark items as returned when resolved.
   - [ ] Feed and initial item payloads omit contact details.
-  - [ ] Clicking "Contact the poster" fetches contact details from `/api/items/:id/reveal-contact` and reveals a copyable email/phone.
-  - [ ] Clicking "Mark as returned" prompts a confirmation dialog.
-  - [ ] On confirmation, status updates to "Returned", the item is excluded from active matching feeds, and action buttons are replaced with a resolution notice.
+  - [ ] If an item has a private question, `/api/items/:id/reveal-contact` requires the correct answer (trimmed, lowercased, validated against hash).
+  - [ ] Enforces a maximum of 3 failed attempts per item, followed by a 5-minute lockout period.
+  - [ ] Items without a private question reveal contact details directly upon request.
+  - [ ] Clicking "Mark as returned" requires entering the item's one-time manage code.
+  - [ ] On valid manage code confirmation, status updates to "Returned", the item is excluded from active matching feeds, and action buttons are replaced with a resolution notice.
 
 ## States and Boundaries
 - **First Use / Seeded State:** The database starts pre-populated with:
@@ -149,11 +153,10 @@ Source: `scope.md > Core Loop`, `scope.md > Known Limitations`.
 - **Multimodal Embeddings:** Vector DB / CLIP embeddings deferred in favor of clear, explainable heuristic scoring.
 
 ## Non-Goals
-- **User Authentication / Passwords:** No logins, user accounts, or role management.
-- **Open "Mark as returned":** No authorization checks or permissions for resolving an item; anyone with the item page can confirm "Mark as returned".
+- **Full User Accounts / Passwords:** No persistent user accounts, session tokens, or profile management; protection is handled via lightweight per-item manage codes and private question hashes.
 - **In-App Messaging / Chat:** No live WebSocket chat; users coordinate pickup via disclosed email/phone.
 - **Native Mobile Apps:** No iOS/Android builds; fully responsive mobile browser web app only.
-- **Automated Claim Ownership Verification:** No complex claim arbitration workflows; verification is handled socially by finding parties.
+- **Complex Multi-Stage Claim Arbitration:** No legalistic verification or campus admin adjudication; verification uses direct question challenges and physical confirmation.
 
 ## Open Questions
 None. All product behaviors, threshold rules, and visual guidelines are approved.

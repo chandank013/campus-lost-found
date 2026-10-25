@@ -16,9 +16,9 @@ College students, campus staff, and campus facility/security desk attendants who
 ## The Core Loop
 1. User opens the web app and clicks "I lost something" or "I found something".
 2. User uploads a photo; the system provides category and color dropdowns (auto-filled by the Flask detector when available, or defaulting to "other" / manual selection).
-3. User adds short details (description, location, required contact info, and where the item is now if found) and submits.
+3. User adds short details (description, location, required contact info, where the item is now if found, and an optional private ownership question/answer for found items). On creation, the system issues a one-time manage code shown once to the poster.
 4. User visits the item page to view the top 3 opposite-side matches scored with visible reasons.
-5. Claimant clicks "Contact the poster", which fetches contact details from a separate reveal endpoint, coordinates pickup offline, and clicks "Mark as returned" to resolve the post.
+5. Claimant clicks "Contact the poster" (answering the private ownership question if configured) to reveal contact info, coordinates pickup offline, and uses their one-time manage code to "Mark as returned" to resolve the post.
 
 ## Inspiration & Identity
 - Clean, card-based web feed (modern, uncluttered, similar to a streamlined campus directory or community board).
@@ -45,14 +45,17 @@ A crisp ~1-minute demo running locally:
   - Manual-first category and color selection (dropdowns always visible; unrecognized items default to "other"; tags are fully editable).
   - Express + MongoDB backend for CRUD operations and rule-based heuristic matching.
   - Separate contact reveal endpoint (`/api/items/:id/reveal-contact`) ensuring contact details are excluded from feed and public item payloads.
+  - Optional private ownership question & answer on found items (hashed answer, 3-attempt limit with lockout before revealing contact).
+  - One-time manage code issued upon creation, required by `PATCH /api/items/:id/return` to prevent unauthorized closure.
   - Flask CV microservice using YOLOv8 (common objects) and OpenCV (color extraction) added last to enhance auto-tagging.
   - Item status lifecycle (`active` vs. `returned`), filtering returned items out of active matching.
   - Database seed script with 3–4 sample items for immediate demo readiness.
   - Baseline local run instructions (npm/python processes) with Docker Compose added as a final convenience step.
 
 ## Known Limitations
-- **Open Status Transitions:** Without user accounts or roles, anyone with the item link can click "Mark as returned" to close an item.
-- **Unauthenticated Contact Reveal Endpoint:** While contact details are excluded from public feed payloads, anyone who requests the reveal endpoint can view the poster's contact details without claim authorization.
+- **Lost Item Contact Visibility:** While found items can be protected with private ownership challenges, lost items reveal contact on request without a challenge so finders can reach the owner quickly.
+- **Manage Code Recovery:** Without user accounts or email recovery, if a poster loses their one-time manage code, they cannot mark their item as returned without database administrator assistance.
+- **In-Memory Lockout / Rate Limits:** Lockout timestamps are stored per-item in the database; distributed IP-based rate limiting is omitted to keep the proof of concept lightweight.
 
 ## Later
 - Campus map view / pin drop for item locations.

@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
 import { connectDB, disconnectDB } from '../config/db.js';
 import { Item } from '../models/Item.js';
+import { hashCode } from '../utils/security.js';
 
 dotenv.config();
+
+const defaultManageCodeHash = hashCode('DEMO-1234');
 
 const sampleItems = [
   {
@@ -15,7 +18,8 @@ const sampleItems = [
     imageUrl: '/uploads/sample-backpack.jpg',
     currentLocation: 'Left at Library 2nd floor desk',
     contact: 'library.desk@campus.edu',
-    status: 'active'
+    status: 'active',
+    manageCodeHash: defaultManageCodeHash
   },
   {
     type: 'lost',
@@ -26,7 +30,8 @@ const sampleItems = [
     date: new Date('2026-10-22T11:00:00Z'),
     imageUrl: '/uploads/sample-bottle.jpg',
     contact: 'bottle.owner@campus.edu',
-    status: 'active'
+    status: 'active',
+    manageCodeHash: defaultManageCodeHash
   },
   {
     type: 'lost',
@@ -37,7 +42,8 @@ const sampleItems = [
     date: new Date('2026-10-23T09:15:00Z'),
     imageUrl: '/uploads/sample-phone.jpg',
     contact: 'student.cs@campus.edu',
-    status: 'active'
+    status: 'active',
+    manageCodeHash: defaultManageCodeHash
   },
   {
     type: 'found',
@@ -49,7 +55,8 @@ const sampleItems = [
     imageUrl: '/uploads/sample-umbrella.jpg',
     currentLocation: 'Main Gate guard post',
     contact: 'security.gate@campus.edu',
-    status: 'active'
+    status: 'active',
+    manageCodeHash: defaultManageCodeHash
   },
   {
     type: 'lost',
@@ -60,7 +67,8 @@ const sampleItems = [
     date: new Date('2026-10-20T16:00:00Z'),
     imageUrl: '/uploads/sample-tote.jpg',
     contact: 'student.arts@campus.edu',
-    status: 'returned'
+    status: 'returned',
+    manageCodeHash: defaultManageCodeHash
   }
 ];
 

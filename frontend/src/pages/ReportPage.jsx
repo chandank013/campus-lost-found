@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ChevronLeft, Camera, X, Check, Loader2, MapPin, Calendar, 
-  Phone, AlertCircle, ShoppingBag, Droplet
+  Phone, AlertCircle, ShoppingBag, Droplet, Lock, Copy
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -46,12 +46,21 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
   const [contact, setContact] = useState('');
   const [currentLocation, setCurrentLocation] = useState(CUSTODY_OPTIONS[0]);
 
+  // Private verification challenge (found items)
+  const [privateQuestion, setPrivateQuestion] = useState('');
+  const [privateAnswer, setPrivateAnswer] = useState('');
+
   // AI Auto-Tag State
   const [detecting, setDetecting] = useState(false);
   const [autoTagNote, setAutoTagNote] = useState('');
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Manage Code Modal State
+  const [createdManageCode, setCreatedManageCode] = useState(null);
+  const [createdItemId, setCreatedItemId] = useState(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const isLost = type === 'lost';
 
@@ -110,6 +119,9 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
     if (!isLost && !currentLocation) {
       errs.currentLocation = 'Please select where the item is currently kept.';
     }
+    if (!isLost && privateQuestion.trim() && !privateAnswer.trim()) {
+      errs.privateAnswer = 'Please provide the expected answer for your verification question.';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -130,11 +142,20 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
       formData.append('contact', contact);
       if (!isLost) {
         formData.append('currentLocation', currentLocation);
+        if (privateQuestion.trim() && privateAnswer.trim()) {
+          formData.append('privateQuestion', privateQuestion.trim());
+          formData.append('privateAnswer', privateAnswer.trim());
+        }
       }
       formData.append('image', photoFile);
 
       const created = await api.createItem(formData);
-      onSuccess(created._id);
+      if (created.manageCode) {
+        setCreatedManageCode(created.manageCode);
+        setCreatedItemId(created._id);
+      } else {
+        onSuccess(created._id);
+      }
     } catch (err) {
       setErrors((prev) => ({
         ...prev,
@@ -194,68 +215,69 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
           </div>
         </div>
 
-        {/* Global Error Banner */}
+        {/* Global Error Notice */}
         {errors.form && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2.5">
-            <AlertCircle size={18} className="flex-shrink-0" />
-            <span className="font-medium">{errors.form}</span>
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3">
+            <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+            <span>{errors.form}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* 1. Photo Upload (Matching Image 2 Reference) */}
+          {/* 1. Mandatory Photo Upload with Drag/Click Container */}
           <div>
-            {photoPreview ? (
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Selected Preview Box */}
-                <div className="relative w-36 h-36 sm:w-40 sm:h-40 rounded-2xl overflow-hidden border border-slate-200 shadow-xs group bg-slate-100">
-                  <img src={photoPreview} alt="Item preview" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={removePhoto}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-900/80 text-white flex items-center justify-center hover:bg-slate-900 transition-colors shadow-sm"
-                    title="Remove photo"
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
+            <label className="block text-xs font-bold text-slate-800 mb-1.5">
+              Photo Upload <span className="text-red-500">*</span>
+            </label>
 
-                {/* Change / Add More Card */}
-                <label className="w-36 h-36 sm:w-40 sm:h-40 rounded-2xl border-2 border-dashed border-slate-200 hover:border-primary-brand bg-slate-50/60 hover:bg-slate-50 flex flex-col items-center justify-center p-3 cursor-pointer text-center transition-all group">
-                  <div className="w-10 h-10 rounded-full bg-primary-light text-primary-brand flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <Camera size={20} />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800">Change photo</span>
-                  <span className="text-[10px] text-slate-500 mt-0.5">Tap to replace</span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 hover:border-primary-brand rounded-2xl cursor-pointer bg-slate-50/60 hover:bg-slate-50 transition-all text-center group">
-                <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary-brand flex items-center justify-center mb-3 group-hover:scale-105 transition-transform shadow-xs">
-                  <Camera size={24} />
+            {!photoPreview ? (
+              <label className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                errors.photo ? 'border-red-300 bg-red-50/30' : 'border-slate-200 bg-slate-50/60 hover:bg-slate-50 hover:border-slate-300'
+              }`}>
+                <div className="w-14 h-14 rounded-2xl bg-white shadow-xs border border-slate-200/80 flex items-center justify-center text-primary-brand mb-3">
+                  <Camera size={28} />
                 </div>
-                <span className="text-sm font-bold text-slate-900">Add photos</span>
-                <span className="text-xs text-slate-500 mt-1">Tap to upload item photo (PNG, JPG, WebP up to 5MB)</span>
+                <p className="text-sm font-bold text-slate-800">
+                  Click to upload item photo
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  JPG, PNG, or WebP up to 5 MB
+                </p>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
                   onChange={handlePhotoChange}
                   className="hidden"
                 />
               </label>
+            ) : (
+              <div className="relative rounded-3xl overflow-hidden border border-slate-200 bg-slate-900 max-h-72 flex items-center justify-center group">
+                <img 
+                  src={photoPreview} 
+                  alt="Preview of reported item" 
+                  className="max-h-72 w-full object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute top-3 right-3 p-2 rounded-xl bg-slate-900/70 text-white hover:bg-slate-900 transition-colors shadow-md backdrop-blur-xs"
+                  title="Remove image"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             )}
 
-            {errors.photo && <p className="text-xs text-red-600 font-semibold mt-2">{errors.photo}</p>}
+            {errors.photo && (
+              <p className="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1">
+                <AlertCircle size={14} />
+                <span>{errors.photo}</span>
+              </p>
+            )}
           </div>
 
-          {/* 2. Category & Color Dropdowns (Two Columns) */}
+          {/* 2. Manual-First Category & Color Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
             {/* Category Dropdown */}
@@ -269,7 +291,7 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
                 </div>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => { setCategory(e.target.value); setAutoTagNote(''); }}
                   className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all appearance-none cursor-pointer hover:border-slate-300 capitalize"
                 >
                   {CATEGORIES.map((cat) => (
@@ -290,13 +312,13 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <span 
-                    className="w-4 h-4 rounded-full border border-slate-300 shadow-2xs" 
+                    className="w-4 h-4 rounded-full border border-slate-300 shadow-2xs inline-block"
                     style={{ backgroundColor: selectedColorHex }}
                   />
                 </div>
                 <select
                   value={color}
-                  onChange={(e) => setColor(e.target.value)}
+                  onChange={(e) => { setColor(e.target.value); setAutoTagNote(''); }}
                   className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all appearance-none cursor-pointer hover:border-slate-300 capitalize"
                 >
                   {COLORS.map((col) => (
@@ -446,7 +468,56 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
             </div>
           )}
 
-          {/* 7. Full-Width Deep Indigo Submit Button */}
+          {/* 7. Optional Private Ownership Verification Challenge - Found Items Only */}
+          {!isLost && (
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Lock size={16} className="text-primary-brand" />
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Private Verification Challenge (Optional)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                Add an ownership question that only the true owner can answer. Claimants will be required to answer this correctly before contact details are revealed.
+              </p>
+
+              <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Verification Question
+                  </label>
+                  <input
+                    type="text"
+                    value={privateQuestion}
+                    onChange={(e) => setPrivateQuestion(e.target.value)}
+                    placeholder="e.g. What keychain is attached, or what sticker is on the back?"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Expected Answer
+                  </label>
+                  <input
+                    type="text"
+                    value={privateAnswer}
+                    onChange={(e) => setPrivateAnswer(e.target.value)}
+                    placeholder="e.g. NASA astronaut"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all"
+                  />
+                  {errors.privateAnswer && (
+                    <p className="text-xs text-red-600 font-semibold mt-1">{errors.privateAnswer}</p>
+                  )}
+                  <span className="block text-[11px] text-slate-400 mt-1 font-medium">
+                    🔒 Stored hashed (case-insensitive &amp; trimmed). Never displayed publicly. Max 3 attempts allowed before temporary lockout.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 8. Full-Width Deep Indigo Submit Button */}
           <div className="pt-3">
             <button
               type="submit"
@@ -461,6 +532,62 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
         </form>
 
       </div>
+
+      {/* One-Time Manage Code Modal */}
+      {createdManageCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center animate-fadeIn">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+              <Check size={26} strokeWidth={2.5} />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-1">Report Published!</h3>
+            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+              Your item is now live and scanning for campus matches. Below is your unique item manage code.
+            </p>
+
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4">
+              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                One-Time Manage Code
+              </span>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-2xl font-black tracking-widest text-primary font-mono select-all">
+                  {createdManageCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(createdManageCode);
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 2000);
+                  }}
+                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors shadow-2xs"
+                  title="Copy code"
+                >
+                  {codeCopied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
+                </button>
+              </div>
+              {codeCopied && (
+                <span className="block text-[11px] font-bold text-emerald-600 mt-1">Copied to clipboard!</span>
+              )}
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left text-xs text-amber-900 leading-relaxed mb-6 flex items-start gap-2">
+              <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Save this code!</strong> You will need this code to mark this item as returned once resolved. It cannot be recovered later.
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onSuccess(createdItemId)}
+              className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm shadow-sm transition-all"
+            >
+              View Item &amp; Matches &rarr;
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
