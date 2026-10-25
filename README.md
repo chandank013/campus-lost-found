@@ -278,12 +278,26 @@ This project was built following a strict plan-first methodology under the **Bui
 
 ---
 
-## Future Work
+## Future work
 
-- **Fine-Tuned Campus Weights:** Train YOLOv8 on custom campus items (student ID cards, campus access keys, dorm fobs).
-- **Multi-Color Detection:** Support primary and secondary color combinations for patterned items.
-- **Institutional SSO:** Connect university Single Sign-On (CAS / SAML / OAuth) for verified student identity.
-- **In-App Custody Transfer Receipts:** Generate a cryptographic verification code for handoffs at campus security desks.
+This is a proof of concept. The following are **not implemented** in the current version. They are the planned next steps, and several of them depend on adding user accounts first.
+
+**Recovery workflow (needs user accounts)**
+- **Recovery case state machine:** turn a match into a tracked case with clear states (match found, verification pending, handover agreed, awaiting confirmation, recovered) and server-enforced transitions.
+- **Dual confirmation and receipts:** both the finder and the owner confirm the handover separately, and a receipt is generated only after both confirm.
+- **Proactive notifications:** alert an owner when a new found item matches their saved lost report, with de-duplication so the same match never alerts twice. This needs a way to know who the owner is.
+
+**Campus operations**
+- **Security dashboard:** a review queue for sensitive or disputed cases (for example ID cards, phones, and wallets), with staff notes and an audit trail.
+- **Campus single sign-on:** login with college accounts, plus roles for students and staff.
+
+**Smarter matching and assistance**
+- **LLM recovery assistant:** rephrases the existing match reasons and explains the next step. It would only use structured facts from the app, would never claim an item is definitely the owner's, and would have a fallback when the service is unavailable.
+- **Natural-language search:** queries such as "blue bottle with a white sticker" parsed into filters.
+- **Image embeddings:** visual similarity as an extra candidate-finding signal, tested on sample images before being trusted.
+- **Email alerts:** an optional second notification channel.
+
+Similarity scores in this app suggest candidates and are not proof of ownership.
 
 ---
 
