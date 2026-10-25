@@ -8,8 +8,11 @@ import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MyPostsPage from './pages/MyPostsPage';
+import { useAuth } from './context/AuthContext';
+import { GuestRoute, ProtectedRoute, LoadingSpinner } from './components/RouteGuards';
 
 export default function App() {
+  const { loading } = useAuth();
   const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail' | 'about' | 'login' | 'register' | 'my-posts'
   const [reportType, setReportType] = useState('lost');
   const [selectedItemId, setSelectedItemId] = useState(null);
@@ -17,37 +20,45 @@ export default function App() {
 
   // Sync with browser history and hash navigation
   useEffect(() => {
-    const handlePopState = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#/items/')) {
-        const id = hash.replace('#/items/', '');
+    const handleLocationChange = () => {
+      let route = window.location.hash;
+      if (!route && window.location.pathname !== '/') {
+        route = `#${window.location.pathname}${window.location.search}`;
+      }
+
+      if (route.startsWith('#/items/')) {
+        const id = route.replace('#/items/', '').split('?')[0];
         setSelectedItemId(id);
         setView('detail');
-      } else if (hash.startsWith('#/report')) {
-        const params = new URLSearchParams(hash.split('?')[1]);
+      } else if (route.startsWith('#/report')) {
+        const params = new URLSearchParams(route.split('?')[1]);
         setReportType(params.get('type') || 'lost');
         setView('report');
-      } else if (hash.startsWith('#/login')) {
-        const params = new URLSearchParams(hash.split('?')[1]);
+      } else if (route.startsWith('#/login')) {
+        const params = new URLSearchParams(route.split('?')[1]);
         setRedirectUrl(params.get('redirect') || null);
         setView('login');
-      } else if (hash.startsWith('#/register')) {
-        const params = new URLSearchParams(hash.split('?')[1]);
+      } else if (route.startsWith('#/register')) {
+        const params = new URLSearchParams(route.split('?')[1]);
         setRedirectUrl(params.get('redirect') || null);
         setView('register');
-      } else if (hash.startsWith('#/my-posts')) {
+      } else if (route.startsWith('#/my-posts')) {
         setView('my-posts');
-      } else if (hash.startsWith('#/about')) {
+      } else if (route.startsWith('#/about')) {
         setView('about');
       } else {
         setView('feed');
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    handlePopState(); // initial load
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    handleLocationChange(); // initial load
 
-    return () => window.removeEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, []);
 
   const navigateTo = (newView, params = {}) => {
@@ -83,6 +94,15 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // While restoring session on first load, avoid flash or redirect loops
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-page flex flex-col items-center justify-center font-sans">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-page flex flex-col font-sans selection:bg-primary-light selection:text-primary-brand">
       <Navbar onNavigate={navigateTo} />
@@ -96,12 +116,14 @@ export default function App() {
         )}
 
         {view === 'report' && (
-          <ReportPage 
-            initialType={reportType} 
-            onBack={() => navigateTo('feed')}
-            onSuccess={(id) => navigateTo('detail', { id })}
-            onNavigate={navigateTo}
-          />
+          <ProtectedRoute>
+            <ReportPage 
+              initialType={reportType} 
+              onBack={() => navigateTo('feed')}
+              onSuccess={(id) => navigateTo('detail', { id })}
+              onNavigate={navigateTo}
+            />
+          </ProtectedRoute>
         )}
 
         {view === 'detail' && (
@@ -118,24 +140,30 @@ export default function App() {
         )}
 
         {view === 'login' && (
-          <LoginPage 
-            onNavigate={navigateTo} 
-            redirectUrl={redirectUrl} 
-          />
+          <GuestRoute>
+            <LoginPage 
+              onNavigate={navigateTo} 
+              redirectUrl={redirectUrl} 
+            />
+          </GuestRoute>
         )}
 
         {view === 'register' && (
-          <RegisterPage 
-            onNavigate={navigateTo} 
-            redirectUrl={redirectUrl} 
-          />
+          <GuestRoute>
+            <RegisterPage 
+              onNavigate={navigateTo} 
+              redirectUrl={redirectUrl} 
+            />
+          </GuestRoute>
         )}
 
         {view === 'my-posts' && (
-          <MyPostsPage 
-            onSelectItem={(id) => navigateTo('detail', { id })} 
-            onNavigate={navigateTo} 
-          />
+          <ProtectedRoute>
+            <MyPostsPage 
+              onSelectItem={(id) => navigateTo('detail', { id })} 
+              onNavigate={navigateTo} 
+            />
+          </ProtectedRoute>
         )}
       </div>
 
