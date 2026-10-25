@@ -8,12 +8,13 @@ import AboutPage from './pages/AboutPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MyPostsPage from './pages/MyPostsPage';
+import ProfilePage from './pages/ProfilePage';
 import { useAuth } from './context/AuthContext';
 import { GuestRoute, ProtectedRoute, LoadingSpinner } from './components/RouteGuards';
 
 export default function App() {
   const { loading } = useAuth();
-  const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail' | 'about' | 'login' | 'register' | 'my-posts'
+  const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail' | 'about' | 'login' | 'register' | 'profile' | 'my-posts'
   const [reportType, setReportType] = useState('lost');
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [redirectUrl, setRedirectUrl] = useState(null);
@@ -42,8 +43,8 @@ export default function App() {
         const params = new URLSearchParams(route.split('?')[1]);
         setRedirectUrl(params.get('redirect') || null);
         setView('register');
-      } else if (route.startsWith('#/my-posts')) {
-        setView('my-posts');
+      } else if (route.startsWith('#/profile') || route.startsWith('#/my-posts')) {
+        setView('profile');
       } else if (route.startsWith('#/about')) {
         setView('about');
       } else {
@@ -87,9 +88,9 @@ export default function App() {
       window.location.hash = `#/register${red}`;
       setRedirectUrl(params.redirect || null);
       setView('register');
-    } else if (newView === 'my-posts') {
-      window.location.hash = '#/my-posts';
-      setView('my-posts');
+    } else if (newView === 'profile' || newView === 'my-posts') {
+      window.location.hash = '#/profile';
+      setView('profile');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -105,7 +106,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-page flex flex-col font-sans selection:bg-primary-light selection:text-primary-brand">
-      <Navbar onNavigate={navigateTo} />
+      <Navbar onNavigate={navigateTo} currentView={view} />
 
       <div className="flex-1">
         {view === 'feed' && (
@@ -157,9 +158,9 @@ export default function App() {
           </GuestRoute>
         )}
 
-        {view === 'my-posts' && (
+        {(view === 'profile' || view === 'my-posts') && (
           <ProtectedRoute>
-            <MyPostsPage 
+            <ProfilePage 
               onSelectItem={(id) => navigateTo('detail', { id })} 
               onNavigate={navigateTo} 
             />

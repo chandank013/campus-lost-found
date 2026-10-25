@@ -1,44 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, MapPin, Calendar, Check, Phone, Copy, 
+  ChevronLeft, ArrowLeft, MapPin, Calendar, Check, Phone, Copy, 
   Sparkles, AlertCircle, Loader2, ShieldCheck, ArrowRight, Package,
-  Lock, CheckCircle2, X, Maximize2, Lightbulb, Search,
-  ShoppingBag, Laptop, BookOpen, Umbrella, Droplet, Palette
+  Lock, CheckCircle2, X, LogIn, Maximize2, Lightbulb, Smartphone,
+  Laptop, ShoppingBag, Droplet, Umbrella, BookOpen, Tag, Palette
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import MatchCard from '../components/MatchCard';
 
-const formatCategory = (cat) => {
-  if (!cat) return '';
-  if (cat.toLowerCase() === 'bag') return 'Backpack';
-  return cat.charAt(0).toUpperCase() + cat.slice(1);
+/**
+ * Category icon helper matching supported item types
+ */
+const getCategoryIcon = (category) => {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('phone')) return <Smartphone size={13} />;
+  if (cat.includes('laptop')) return <Laptop size={13} />;
+  if (cat.includes('bag')) return <ShoppingBag size={13} />;
+  if (cat.includes('bottle')) return <Droplet size={13} />;
+  if (cat.includes('umbrella')) return <Umbrella size={13} />;
+  if (cat.includes('book')) return <BookOpen size={13} />;
+  return <Tag size={13} />;
 };
 
-const formatColor = (col) => {
-  if (!col) return '';
-  return col.charAt(0).toUpperCase() + col.slice(1);
-};
+/**
+ * Polished empty state illustration replicating the reference design
+ * (Soft circular background with magnifying glass, document preview, and sparkle stars)
+ */
+function MatchesEmptyIllustration() {
+  return (
+    <div className="relative w-44 h-40 mx-auto flex items-center justify-center my-3 select-none">
+      {/* Soft circular backdrop */}
+      <div className="absolute w-36 h-36 rounded-full bg-[#f0f5ff] -z-0"></div>
 
-const getCategoryIcon = (cat, size = 14) => {
-  const c = (cat || '').toLowerCase();
-  switch (c) {
-    case 'bag':
-      return <ShoppingBag size={size} />;
-    case 'phone':
-      return <Phone size={size} />;
-    case 'bottle':
-      return <Droplet size={size} />;
-    case 'umbrella':
-      return <Umbrella size={size} />;
-    case 'laptop':
-      return <Laptop size={size} />;
-    case 'book':
-      return <BookOpen size={size} />;
-    default:
-      return <Package size={size} />;
-  }
-};
+      {/* Floating document preview */}
+      <div className="absolute right-9 top-8 w-18 h-20 bg-white rounded-xl border border-slate-100 shadow-sm p-2.5 flex flex-col justify-center gap-1.5 z-10 transform translate-x-2">
+        <div className="w-9 h-1.5 bg-slate-200 rounded-full"></div>
+        <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
+        <div className="w-7 h-1.5 bg-slate-200 rounded-full"></div>
+      </div>
+
+      {/* Royal blue magnifying glass */}
+      <div className="absolute left-9 top-6 z-20">
+        <svg width="68" height="68" viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="28" cy="28" r="19" stroke="#1d2b85" strokeWidth="6" fill="#ffffff" />
+          <path d="M18 20C20 16 26 14 31 16" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M42 42L57 57" stroke="#1d2b85" strokeWidth="7" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* Subtle sparkle stars */}
+      <div className="absolute right-12 top-3 z-10 text-amber-400">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/>
+        </svg>
+      </div>
+      <div className="absolute right-7 top-9 z-10 text-amber-300">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/>
+        </svg>
+      </div>
+      <div className="absolute left-8 bottom-8 z-10 text-blue-400">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
 
 export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }) {
   const { user } = useAuth();
@@ -47,7 +76,7 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Photo lightbox state
+  // Fullscreen image expand lightbox
   const [showImageLightbox, setShowImageLightbox] = useState(false);
 
   // Contact reveal state
@@ -76,7 +105,7 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
         api.getMatches(itemId)
       ]);
       setItem(itemData);
-      setMatches(matchesData || []);
+      setMatches(matchesData);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to load item details');
     } finally {
@@ -89,6 +118,19 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
       loadData();
     }
   }, [itemId]);
+
+  // Handle escape key to close image lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowImageLightbox(false);
+        setShowChallengeModal(false);
+        setShowReturnModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleContactClick = () => {
     if (!user) {
@@ -163,86 +205,28 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
     }
   };
 
-  // Close lightbox on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setShowImageLightbox(false);
-      }
-    };
-    if (showImageLightbox) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showImageLightbox]);
-
-  // Loading State
   if (loading) {
     return (
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="flex items-center gap-2 text-sm font-semibold text-primary mb-6">
-          <ArrowLeft size={16} />
-          <span>Back to feed</span>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-20 gap-6 lg:gap-7 items-start">
-          {/* Left Skeleton */}
-          <div className="lg:col-span-11 bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs animate-pulse">
-            <div className="w-full aspect-[16/10] bg-slate-200 rounded-xl mb-6"></div>
-            <div className="h-7 w-2/3 bg-slate-200 rounded-lg mb-3"></div>
-            <div className="flex gap-2 mb-4">
-              <div className="h-6 w-20 bg-slate-200 rounded-xl"></div>
-              <div className="h-6 w-16 bg-slate-200 rounded-xl"></div>
-            </div>
-            <div className="h-4 w-full bg-slate-100 rounded mb-2"></div>
-            <div className="h-4 w-4/5 bg-slate-100 rounded mb-6"></div>
-            <div className="h-16 bg-slate-50 border border-slate-100 rounded-xl mb-6"></div>
-            <div className="h-12 bg-slate-200 rounded-xl"></div>
-          </div>
-
-          {/* Right Skeleton */}
-          <div className="lg:col-span-9 bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs animate-pulse">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="h-6 w-44 bg-slate-200 rounded-lg"></div>
-              <div className="h-6 w-24 bg-slate-200 rounded-xl"></div>
-            </div>
-            <div className="h-4 w-full bg-slate-100 rounded mb-6"></div>
-            <div className="space-y-4">
-              <div className="h-28 bg-slate-50 border border-slate-100 rounded-2xl"></div>
-              <div className="h-28 bg-slate-50 border border-slate-100 rounded-2xl"></div>
-            </div>
-          </div>
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center justify-center text-slate-500">
+        <Loader2 size={36} className="animate-spin text-primary-brand mb-3" />
+        <p className="text-sm font-semibold">Loading item details and scanning for matches...</p>
       </main>
     );
   }
 
-  // Error State
   if (error || !item) {
     return (
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-8 sm:p-10 shadow-sm text-slate-800">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle size={30} />
-          </div>
-          <h3 className="text-xl font-black text-slate-900">Item Not Found</h3>
-          <p className="text-sm mt-2 text-slate-500 max-w-md mx-auto leading-relaxed">
-            {error || 'This post may have been removed, archived, or does not exist.'}
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <button
-              onClick={onBack}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-bold shadow-xs hover:bg-slate-50 transition-colors"
-            >
-              Back to feed
-            </button>
-            <button
-              onClick={loadData}
-              className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold shadow-xs hover:bg-primary-hover transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xs text-slate-800">
+          <AlertCircle size={36} className="mx-auto mb-3 text-red-500" />
+          <h3 className="text-lg font-bold">Item Not Found</h3>
+          <p className="text-sm mt-1 text-slate-500">{error || 'This post may have been removed or does not exist.'}</p>
+          <button
+            onClick={onBack}
+            className="mt-5 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold shadow-xs hover:bg-primary-hover"
+          >
+            Back to feed
+          </button>
         </div>
       </main>
     );
@@ -253,315 +237,258 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
   const ownerId = item.owner?._id || item.owner;
   const currentUserId = user?.id || user?._id;
   const isOwner = Boolean(user && ownerId && currentUserId && String(ownerId) === String(currentUserId));
-  
   const formattedDate = new Date(item.date).toLocaleDateString('en-US', {
     month: 'short',
     day: '2-digit',
     year: 'numeric'
   });
 
-  // Heading derived from existing color and category (for example 'Blue Backpack')
-  const derivedHeading = (item.color && item.category && item.color !== 'other' && item.category !== 'other')
-    ? `${formatColor(item.color)} ${formatCategory(item.category)}`
-    : (item.category && item.category !== 'other' 
-        ? formatCategory(item.category) 
-        : (item.description || 'Campus Item'));
-
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 font-sans">
       
-      {/* Top 'Back to feed' link */}
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover mb-6 transition-colors group cursor-pointer"
-      >
-        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        <span>Back to feed</span>
-      </button>
-
-      {/* Main 2-Column Responsive Layout (55% details, 45% matches on desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-20 gap-6 lg:gap-7 items-start">
+      {/* Main 2-Column Responsive Layout (~55% Left / ~45% Right) */}
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-7 items-start">
         
-        {/* ======================================================== */}
-        {/* Left Column: Item Details (~55% width on desktop)        */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-11 bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs">
+        {/* LEFT COLUMN: Item Details Card (~55% on desktop) */}
+        <div className="w-full lg:w-[55%] flex-shrink-0 bg-white border border-slate-200/80 rounded-[24px] p-5 sm:p-6 shadow-xs">
           
-          {/* Main Photo in rounded container with object-cover */}
-          <div className="relative aspect-[16/10] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/60 shadow-2xs group mb-6">
+          {/* Item Image Container with Rounded Corners */}
+          <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 group">
             <img 
               src={item.imageUrl} 
-              alt={item.description || derivedHeading}
-              className="w-full h-full object-cover"
+              alt={item.description || `${item.color} ${item.category}`}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.01]"
             />
-            
-            {/* Top Left Overlaid Badges (Lost/Found & Active/Returned) */}
+
+            {/* Overlaid Badges (Lost/Found & Active) */}
             <div className="absolute top-3.5 left-3.5 flex items-center gap-2 z-10">
               {isLost ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ffedd5] text-[#ea580c] border border-orange-200/90 shadow-xs backdrop-blur-xs">
-                  <span className="w-4 h-4 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-[10px] font-black">!</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ffedd5] text-[#ea580c] shadow-xs">
+                  <span className="w-4 h-4 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-[10px] font-black leading-none">!</span>
                   <span>Lost Item</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#d1fae5] text-[#059669] border border-emerald-200/90 shadow-xs backdrop-blur-xs">
-                  <span className="w-4 h-4 rounded-full bg-[#059669] text-white flex items-center justify-center text-[10px] font-black">✓</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#d1fae5] text-[#059669] shadow-xs">
+                  <span className="w-4 h-4 rounded-full bg-[#059669] text-white flex items-center justify-center text-[10px] font-black leading-none">✓</span>
                   <span>Found Item</span>
                 </span>
               )}
 
-              <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-xs backdrop-blur-xs ${
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full shadow-xs backdrop-blur-2xs ${
                 isReturned 
                   ? 'bg-slate-100/95 text-slate-600 border border-slate-200' 
-                  : 'bg-white/95 text-slate-700 border border-slate-200/70'
+                  : 'bg-white/95 text-slate-800'
               }`}>
                 {isReturned ? 'Returned' : 'Active'}
               </span>
             </div>
 
-            {/* Top Right Expand Icon Button */}
+            {/* Expand Image Control Button */}
             <button
               type="button"
               onClick={() => setShowImageLightbox(true)}
-              title="View full image"
-              aria-label="View full image"
-              className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 backdrop-blur-xs flex items-center justify-center shadow-xs border border-slate-200/60 transition-transform active:scale-95 cursor-pointer z-10"
+              className="absolute top-3.5 right-3.5 p-2 rounded-xl bg-white/85 hover:bg-white text-slate-700 hover:text-slate-900 shadow-xs backdrop-blur-xs transition-all z-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+              title="Expand image"
+              aria-label="Expand image preview"
             >
-              <Maximize2 size={15} />
+              <Maximize2 size={16} />
             </button>
           </div>
 
-          {/* Heading derived from existing color and category (for example 'Blue Backpack') */}
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-snug mb-3">
-            {derivedHeading}
-          </h1>
+          {/* Item Information Section */}
+          <div className="pt-5 sm:pt-6">
+            
+            {/* Primary Heading / Item Title */}
+            <h1 className="text-2xl sm:text-[26px] font-black text-slate-900 tracking-tight leading-snug mb-3">
+              {item.description || `Unspecified ${item.color} ${item.category}`}
+            </h1>
 
-          {/* Category and Color Badges */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            {/* Category badge */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 capitalize">
-              {getCategoryIcon(item.category, 14)}
-              <span>{formatCategory(item.category)}</span>
-            </span>
-
-            {/* Color badge */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 capitalize">
-              <Palette size={14} className="text-blue-500" />
-              <span>{formatColor(item.color)}</span>
-            </span>
-
-            {/* Verification protected badge (if item has private question) */}
-            {item.privateQuestion && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                <Lock size={12} />
-                <span>Verification Protected</span>
+            {/* Category, Color, and Verification Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#ede9fe] text-[#4f46e5]">
+                {getCategoryIcon(item.category)}
+                <span className="capitalize">{item.category}</span>
               </span>
+
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#e0f2fe] text-[#0284c7]">
+                <Palette size={13} />
+                <span className="capitalize">{item.color}</span>
+              </span>
+
+              {item.privateQuestion && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <Lock size={12} />
+                  <span>Verification Protected</span>
+                </span>
+              )}
+            </div>
+
+            {/* Item Description Text */}
+            <p className="text-sm text-slate-600 leading-relaxed font-normal mb-5">
+              {item.description || `Reported ${item.type} item: ${item.color} ${item.category}.`}
+            </p>
+
+            {/* Custody Information (Found Items Only) */}
+            {item.currentLocation && (
+              <div className="mb-5 p-3.5 bg-teal-50/70 border border-teal-200/70 rounded-2xl flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Package size={17} />
+                </div>
+                <div>
+                  <span className="block text-[11px] font-bold text-teal-900 uppercase tracking-wider">Item Custody</span>
+                  <p className="text-xs sm:text-sm font-semibold text-teal-800 mt-0.5">{item.currentLocation}</p>
+                </div>
+              </div>
             )}
-          </div>
 
-          {/* Full description (wrapping long text without clipping) */}
-          <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words mb-5">
-            {item.description || 'No additional description provided.'}
-          </div>
-
-          {/* Metadata: Location and Date separated by a subtle divider */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-t border-b border-slate-100 my-5">
-            {/* Location */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
-                <MapPin size={18} />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Reported Location
-                </span>
-                <p className="text-sm font-bold text-slate-900 truncate" title={item.location}>
-                  {item.location}
-                </p>
-              </div>
-            </div>
-
-            {/* Date */}
-            <div className="flex items-center gap-3 sm:border-l sm:border-slate-100 sm:pl-4">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
-                <Calendar size={18} />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Reported Date
-                </span>
-                <p className="text-sm font-bold text-slate-900">
-                  {formattedDate}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 'Where it is now' for found items */}
-          {item.type === 'found' && item.currentLocation && (
-            <div className="mb-5 p-3.5 bg-teal-50/70 border border-teal-200/80 rounded-xl flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Package size={15} />
-              </div>
-              <div className="min-w-0">
-                <span className="block text-[10px] font-bold text-teal-800 uppercase tracking-wider">
-                  Where it is now
-                </span>
-                <p className="text-xs font-semibold text-teal-900 mt-0.5">
-                  {item.currentLocation}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Area: Contact / Resolution */}
-          {isReturned ? (
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-600 font-semibold text-sm flex items-center justify-center gap-2">
-              <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
-              <span>This item has been marked as returned to its owner.</span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              
-              {/* Revealed Contact Box */}
-              {revealedContact ? (
-                <div className="p-4 sm:p-5 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl animate-fadeIn">
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
-                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                      <Phone size={17} className="text-primary-brand" />
-                      <span className="text-slate-700">Poster Contact:</span>
-                      <span className="text-slate-900 font-extrabold select-all">{revealedContact}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleCopyContact}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-indigo-200 text-primary-brand text-xs font-bold hover:bg-indigo-50 transition-colors shadow-2xs cursor-pointer"
-                    >
-                      {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-                      <span>{copied ? 'Copied!' : 'Copy Contact'}</span>
-                    </button>
-                  </div>
-                  <p className="text-xs text-indigo-900/80 leading-relaxed font-medium">
-                    💡 <strong>Verification Tip:</strong> Ask them to describe one detail that isn’t obvious in the photo (like internal contents or a scratch) before handing over the item.
+            {/* Metadata Section: Reported Location & Reported Date separated by a subtle divider */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-t border-slate-100 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
+                  <MapPin size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">REPORTED LOCATION</span>
+                  <p className="text-sm font-bold text-slate-900 truncate mt-0.5" title={item.location}>
+                    {item.location}
                   </p>
                 </div>
-              ) : (
-                /* Full-width indigo Contact button */
-                <button
-                  type="button"
-                  onClick={handleContactClick}
-                  disabled={revealing}
-                  className="w-full py-3.5 px-4 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm sm:text-base shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
-                >
-                  {revealing ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      <span>Retrieving contact...</span>
-                    </>
-                  ) : item.privateQuestion ? (
-                    <>
-                      <Lock size={18} />
-                      <span>Answer Question to Contact Poster</span>
-                    </>
-                  ) : (
-                    <>
-                      <Phone size={18} />
-                      <span>Contact the poster</span>
-                    </>
-                  )}
-                </button>
-              )}
+              </div>
 
-              {/* Owner 'Mark as returned' button */}
-              {isOwner && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReturnError(null);
-                    setShowReturnModal(true);
-                  }}
-                  className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <ShieldCheck size={15} className="text-slate-500" />
-                  <span>Mark as returned</span>
-                </button>
-              )}
-
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
+                  <Calendar size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">REPORTED DATE</span>
+                  <p className="text-sm font-bold text-slate-900 truncate mt-0.5">
+                    {formattedDate}
+                  </p>
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Contact Action Flow */}
+            {isReturned ? (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center text-slate-600 font-semibold text-sm flex items-center justify-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">✓</div>
+                <span>This item has been marked as returned to its owner.</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                
+                {/* Contact Revealed Card */}
+                {revealedContact ? (
+                  <div className="p-4.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl animate-fadeIn">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
+                      <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                        <Phone size={16} className="text-primary-brand" />
+                        <span className="text-slate-700">Poster Contact:</span>
+                        <span className="text-slate-900 font-extrabold select-all">{revealedContact}</span>
+                      </div>
+                      <button
+                        onClick={handleCopyContact}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-indigo-200 text-primary-brand text-xs font-bold hover:bg-indigo-50 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                        <span>{copied ? 'Copied!' : 'Copy Contact'}</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-indigo-900/80 leading-relaxed font-medium">
+                      💡 <strong>Verification Tip:</strong> Ask them to describe one detail that isn’t obvious in the photo (like internal contents or a distinctive scratch) before handing over the item.
+                    </p>
+                  </div>
+                ) : (
+                  /* Prominent Full-Width Contact Button */
+                  <button
+                    onClick={handleContactClick}
+                    disabled={revealing}
+                    className="w-full py-3.5 sm:py-4 rounded-2xl bg-[#1d2b85] hover:bg-[#16226b] text-white font-bold text-sm sm:text-base shadow-sm transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1d2b85]"
+                  >
+                    {revealing ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : item.privateQuestion ? (
+                      <Lock size={18} />
+                    ) : (
+                      <Phone size={18} />
+                    )}
+                    <span>
+                      {item.privateQuestion ? 'Answer Question to Contact Poster' : 'Contact the poster'}
+                    </span>
+                  </button>
+                )}
+
+                {/* Mark as Returned Button (Shown only to the item owner) */}
+                {isOwner && (
+                  <button
+                    onClick={() => {
+                      setReturnError(null);
+                      setShowReturnModal(true);
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <ShieldCheck size={15} className="text-slate-500" />
+                    <span>Mark as returned</span>
+                  </button>
+                )}
+
+              </div>
+            )}
+
+          </div>
 
         </div>
 
-        {/* ======================================================== */}
-        {/* Right Panel: Top Likely Matches (~45% width on desktop)  */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-9 bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xs">
+        {/* RIGHT COLUMN: Top Likely Matches Panel (~45% on desktop) */}
+        <div className="w-full lg:w-[45%] flex-1 min-w-0 bg-white rounded-[24px] border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col">
           
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-primary-brand flex items-center justify-center flex-shrink-0">
-                <Sparkles size={17} />
+          {/* Panel Header */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                <Sparkles size={20} className="text-primary-brand" />
               </div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">
                 Top Likely Matches
               </h2>
             </div>
-
-            {/* Candidate count badge shown ONLY after matches have loaded (never a hardcoded 0) */}
-            {!loading && (
-              <span className="px-3 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold select-none">
-                {matches.length} {matches.length === 1 ? 'candidate' : 'candidates'}
-              </span>
-            )}
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 whitespace-nowrap">
+              {matches.length} {matches.length === 1 ? 'candidate' : 'candidates'}
+            </span>
           </div>
 
-          {/* Secondary explanation line */}
-          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mt-2.5 mb-5">
+          {/* Engine Explanation Description */}
+          <p className="text-xs text-slate-500 leading-relaxed mt-3.5 mb-5">
             Our matching engine evaluates opposite-side active items across category, color, keywords, campus area, and report date.
           </p>
 
-          {/* Content: Matches List or Visual Empty State */}
+          {/* Match Results or Polished Empty State */}
           {matches.length === 0 ? (
-            /* Visual Empty State */
-            <div className="py-6 px-4 text-center">
-              
-              {/* Illustrated Search Container */}
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-sky-50/80 border border-sky-100/80 flex items-center justify-center mx-auto my-3">
-                {/* Decorative sparkles/dots */}
-                <div className="absolute top-4 right-6 w-2 h-2 rounded-full bg-amber-400" />
-                <div className="absolute bottom-6 left-6 w-2.5 h-2.5 rounded-full bg-primary-brand/30" />
-                <div className="absolute top-8 left-5 w-1.5 h-1.5 rounded-full bg-sky-400" />
+            <div className="flex flex-col items-center justify-center py-2 sm:py-4">
+              {/* Graphic Illustration */}
+              <MatchesEmptyIllustration />
 
-                <div className="relative flex items-center justify-center">
-                  {/* Subtle document in background */}
-                  <div className="absolute -right-3 -top-2 w-11 h-13 bg-white rounded-lg border border-slate-200/80 shadow-2xs p-1.5 flex flex-col gap-1 rotate-6">
-                    <div className="w-5 h-1 bg-slate-300 rounded" />
-                    <div className="w-7 h-1 bg-slate-200 rounded" />
-                    <div className="w-4 h-1 bg-slate-200 rounded" />
-                  </div>
-                  {/* Search Icon */}
-                  <Search size={42} className="text-primary-brand z-10 drop-shadow-xs" strokeWidth={2.3} />
-                </div>
-              </div>
-
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-3">
+              {/* Empty State Heading */}
+              <h3 className="text-lg font-bold text-slate-900 text-center mb-1 mt-1">
                 No matches yet
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-xs mx-auto mt-1 leading-relaxed">
+
+              {/* Supporting explanation text */}
+              <p className="text-xs text-slate-500 text-center max-w-xs mx-auto leading-relaxed mb-4">
                 We’ll automatically highlight candidate items as new reports are published on campus.
               </p>
 
-              {/* Small Lightbulb Tip Card */}
-              <div className="bg-amber-50/60 border border-amber-200/70 rounded-xl p-3.5 text-xs text-slate-700 flex items-start gap-2.5 mt-6 text-left">
-                <Lightbulb size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              {/* Compact Tip Card */}
+              <div className="w-full mt-2 p-3.5 sm:p-4 bg-amber-50/50 border border-amber-200/60 rounded-2xl flex items-start gap-3 text-xs text-slate-700">
+                <div className="w-6 h-6 rounded-lg bg-amber-100/80 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Lightbulb size={14} />
+                </div>
                 <p className="leading-relaxed">
-                  <strong>Tip:</strong> Adding specific description keywords (brand, stickers, marks) increases candidate match accuracy.
+                  <strong className="font-bold text-slate-800">Tip:</strong> Adding specific description keywords (brand, stickers, marks) increases candidate match accuracy.
                 </p>
               </div>
             </div>
           ) : (
-            /* Match Cards with real data */
             <div className="flex flex-col gap-3.5">
               {matches.map((m) => (
                 <MatchCard key={m.item._id} match={m} onSelect={onSelectMatch} />
@@ -573,29 +500,37 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
 
       </div>
 
-      {/* Image Lightbox Modal */}
+      {/* Lightbox Image Preview Modal */}
       {showImageLightbox && (
         <div 
           onClick={() => setShowImageLightbox(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
         >
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2 cursor-default animate-fadeIn"
+            onClick={(e) => e.stopPropagation()} 
+            className="relative max-w-4xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-800"
           >
-            <button
-              type="button"
-              onClick={() => setShowImageLightbox(false)}
-              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center z-10 transition-colors shadow-md cursor-pointer"
-              title="Close image"
-            >
-              <X size={18} />
-            </button>
-            <img 
-              src={item.imageUrl} 
-              alt={item.description || derivedHeading}
-              className="w-full h-auto max-h-[85vh] object-contain rounded-xl"
-            />
+            <div className="absolute top-4 right-4 z-10">
+              <button
+                type="button"
+                onClick={() => setShowImageLightbox(false)}
+                className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer shadow-md"
+                aria-label="Close image preview"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="max-h-[80vh] flex items-center justify-center bg-slate-950">
+              <img 
+                src={item.imageUrl} 
+                alt={item.description || item.category} 
+                className="max-h-[80vh] w-auto max-w-full object-contain"
+              />
+            </div>
+            <div className="p-4 bg-white flex items-center justify-between text-xs text-slate-600">
+              <span className="font-semibold text-slate-900">{item.description || `${item.color} ${item.category}`}</span>
+              <span>{item.location} &bull; {formattedDate}</span>
+            </div>
           </div>
         </div>
       )}
@@ -603,7 +538,7 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
       {/* Ownership Verification Challenge Modal */}
       {showChallengeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-primary-brand/10 text-primary-brand flex items-center justify-center">
@@ -624,8 +559,8 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
               The finder has set a verification question to confirm rightful ownership before disclosing contact details:
             </p>
 
-            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl mb-4 text-left">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-4 text-left">
+              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                 Question
               </span>
               <p className="text-sm font-bold text-slate-800 leading-snug">
@@ -680,7 +615,7 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
       {/* Return Resolution Modal (Owner Only) */}
       {showReturnModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">

@@ -1,18 +1,18 @@
 import React from 'react';
 import { 
   MapPin, Calendar, Sparkles, ShoppingBag, Droplets, 
-  ArrowRight, Phone, Laptop, BookOpen, Umbrella, Package, Eye
+  ArrowRight, Phone, Laptop, BookOpen, Umbrella, Tag
 } from 'lucide-react';
 
-const formatCategory = (cat) => {
-  if (!cat) return '';
-  if (cat.toLowerCase() === 'bag') return 'Backpack';
-  return cat.charAt(0).toUpperCase() + cat.slice(1);
-};
-
-const formatColor = (col) => {
-  if (!col) return '';
-  return col.charAt(0).toUpperCase() + col.slice(1);
+const getCategoryIcon = (category) => {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('phone')) return <Phone size={10} />;
+  if (cat.includes('laptop')) return <Laptop size={10} />;
+  if (cat.includes('bag')) return <ShoppingBag size={10} />;
+  if (cat.includes('bottle')) return <Droplets size={10} />;
+  if (cat.includes('umbrella')) return <Umbrella size={10} />;
+  if (cat.includes('book')) return <BookOpen size={10} />;
+  return <Tag size={10} />;
 };
 
 export default function MatchCard({ match, onSelect }) {
@@ -74,52 +74,50 @@ export default function MatchCard({ match, onSelect }) {
 
         {/* Info & Tier */}
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
-            {/* Lost/Found Badge */}
+          <div className="flex items-center justify-between gap-1 mb-1.5">
             {isLost ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#ffedd5] text-[#ea580c] border border-orange-200/80">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
-                <span>Lost Item</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ffedd5] text-[#ea580c] border border-orange-200">
+                <span className="w-3 h-3 rounded-full bg-[#ea580c] text-white flex items-center justify-center text-[8px] font-black">!</span>
+                <span>Lost</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#d1fae5] text-[#059669] border border-emerald-200/80">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#059669]" />
-                <span>Found Item</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d1fae5] text-[#059669] border border-emerald-200">
+                <span className="w-3 h-3 rounded-full bg-[#059669] text-white flex items-center justify-center text-[8px] font-black">✓</span>
+                <span>Found</span>
               </span>
             )}
 
             {/* Match Tier Badge */}
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${tierStyle.bg}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold border ${tierStyle.bg}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${tierStyle.dot}`} />
-              <span>{tier}</span>
+              <span>{tier} ({score} pts)</span>
             </span>
           </div>
 
-          {/* Heading */}
           <h4 className="text-sm font-bold text-slate-900 line-clamp-1 mb-1 group-hover:text-primary-brand transition-colors">
-            {item.description || `${formatColor(item.color)} ${formatCategory(item.category)}`}
+            {item.description || `${item.color} ${item.category}`}
           </h4>
 
-          {/* Category & Color badges */}
+          {/* Category & Color chips */}
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 text-indigo-700 capitalize">
-              {formatCategory(item.category)}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 text-indigo-700 capitalize">
+              {getCategoryIcon(item.category)}
+              <span>{item.category}</span>
             </span>
             <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 capitalize">
-              {formatColor(item.color)}
+              {item.color}
             </span>
           </div>
 
-          {/* Location & Date */}
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="truncate flex items-center gap-1">
-              <MapPin size={11} className="text-slate-400 flex-shrink-0" />
-              <span className="truncate">{item.location}</span>
+              <MapPin size={11} className="text-slate-400" />
+              {item.location}
             </span>
             <span>&bull;</span>
             <span className="flex-shrink-0 flex items-center gap-1">
-              <Calendar size={11} className="text-slate-400 flex-shrink-0" />
-              <span>{formattedDate}</span>
+              <Calendar size={11} className="text-slate-400" />
+              {formattedDate}
             </span>
           </div>
         </div>
@@ -127,11 +125,11 @@ export default function MatchCard({ match, onSelect }) {
 
       {/* Applied Reason Chips */}
       {reasons && reasons.length > 0 && (
-        <div className="pt-2.5 border-t border-slate-100 flex flex-wrap gap-1.5">
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
           {reasons.map((reason, idx) => (
             <span 
               key={idx}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200/60"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-50 text-slate-700 border border-slate-200/60"
             >
               {getReasonIcon(reason)}
               <span>{reason}</span>
@@ -140,10 +138,10 @@ export default function MatchCard({ match, onSelect }) {
         </div>
       )}
 
-      {/* Clear View Action */}
+      {/* View Details Action */}
       <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
         <span className="text-[11px] font-medium text-slate-400">
-          Match confidence: <strong className="text-slate-600 font-semibold">{score} pts</strong>
+          Match confidence: <strong className="text-slate-700 font-semibold">{score} pts</strong>
         </span>
         <button
           type="button"
@@ -151,10 +149,10 @@ export default function MatchCard({ match, onSelect }) {
             e.stopPropagation();
             onSelect(item._id);
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-primary-brand text-xs font-bold transition-colors cursor-pointer group-hover:bg-primary group-hover:text-white"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 hover:bg-[#1d2b85] hover:text-white text-primary-brand text-xs font-bold transition-all cursor-pointer shadow-2xs"
         >
-          <span>View</span>
-          <ArrowRight size={13} />
+          <span>View candidate</span>
+          <ArrowRight size={12} />
         </button>
       </div>
     </div>
