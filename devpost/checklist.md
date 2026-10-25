@@ -138,3 +138,22 @@ Activity mode: Live app and editor, paired with standalone `devpost/app-map.html
     4. Full test suite passing.
   Verify (mechanical): `npm test` passes all tests; `npm run build` passes; seed runs cleanly.
   Commit: `chore(ship): update seed data with demo users, docker env, and documentation for accounts`
+
+
+- [x] **Slice D: Navbar, Profile Dropdown, Detail Page Redesign, Footer & Documentation Synchronization (2026-10-25)**
+  Becomes usable:
+    1. Global Navbar: Left brand link, Center navigation ("Home", "Report" dropdown with lost/found options, "About" link; "Browse" removed), Right search input, Login button (sharing primary button styling) and notification placeholder when logged out; search, notification placeholder, and circular profile avatar with Lucide `User` icon when logged in.
+    2. Profile Dropdown Menu: Displays user email header (`Signed in as <email>`), "My Profile" link navigating to `#/profile`, and "Logout" button with keyboard accessibility and click-outside/Escape dismissal.
+    3. Item Detail Page Redesign: Modern two-column layout (~55% details, ~45% matches), overlaid type/status badges, image lightbox expand button (`Maximize2`), custody information, royal blue contact reveal button with ownership challenge modal, owner "Mark as returned" resolution, and Top Likely Matches panel with candidate count badge, reason chips, and custom empty illustration (`MatchesEmptyIllustration`). No "Back to feed" link.
+    4. Profile Page (`ProfilePage.jsx`): Complete user profile dashboard displaying email, join date, member badge, statistics (total reports, active listings, returned count), tab filters (All/Active/Returned), item list, and owner return action.
+    5. Global Footer (`Footer.jsx`): Multi-column layout with brand mission, navigation links (Home, About, Contact Support), community reporting links, dynamic copyright year, and hackathon POC notice.
+    6. Route Guards (`RouteGuards.jsx`): `GuestRoute` protecting login/register with safe replace to avoid history loops, `ProtectedRoute` for reporting and profile with redirect preservation, and `LoadingSpinner` preventing session flashes.
+    7. Documentation Synchronization: Synchronized `devpost/scope.md`, `devpost/prd.md`, `devpost/spec.md`, and `README.md` to perfectly match implemented routes, styling, 35 unit/API tests, and honest limitations.
+  Verify (mechanical):
+    - Frontend build compiles cleanly (`npm run build` in `frontend/`) with zero warnings or errors.
+    - All 35 backend tests pass (`npm test` in `backend/`).
+  Commits:
+    - `216718f`: `feat(navbar): rename report buttons, add profile avatar dropdown, and clean up page body`
+    - `1f742d0`: `feat(navbar): use User icon for profile avatar and share button styling with login button`
+    - `26c4207`: `feat(detail): redesign item detail page and matches panel to match reference design`
+    - `450b42b`: `feat(ui): update navbar layout, footer, and profile page`

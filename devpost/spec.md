@@ -7,8 +7,8 @@ status: approved
 
 ## How This Works, In Plain Language
 Campus Lost & Found is built as a modular 3-tier architecture with an asynchronous AI enhancement layer:
-1. **Frontend (React + Tailwind CSS):** A responsive single-page web app built with Vite. It renders the feed, handles client-side filtering, presents the posting form with instant image preview, and displays item details with explainable match cards.
-2. **Backend API (Node/Express + MongoDB):** The core application hub. It manages CRUD operations, handles image uploads to a local `/uploads` directory, serves items while strictly stripping sensitive contact information from all feed and detail responses, exposes a separate endpoint to reveal poster contacts, and executes a deterministic, rule-based matching algorithm with human-readable reason chips. It also acts as an internal proxy for image tag detection.
+1. **Frontend (React + Tailwind CSS):** A responsive single-page web app built with Vite. It renders the feed, handles client-side filtering, presents the posting form with instant image preview, displays redesigned item details with an explainable Top Likely Matches panel, provides user authentication and profile management, and enforces client-side route guards.
+2. **Backend API (Node/Express + MongoDB):** The core application hub. It manages user registration and authentication (bcrypt + JWT), handles CRUD operations and image uploads to a local `/uploads` directory, serves items while strictly stripping sensitive contact information and hashes from public responses, exposes a protected contact reveal endpoint with private verification challenges, enforces owner-only returns (`PATCH /api/items/:id/return`), and executes a deterministic, rule-based matching algorithm with human-readable reason chips. It also acts as an internal proxy for image tag detection.
 3. **Computer Vision Microservice (Python/Flask + YOLOv8 + OpenCV):** A standalone helper service running on port 5001. When an image is uploaded for preview, Express forwards it in-memory to Flask. YOLOv8 detects the bounding box and category; OpenCV analyzes the cropped bounding box (or center crop fallback) in HSV color space to determine dominant color via per-pixel classification and majority vote. If this service is slow or offline, the app gracefully falls back to manual entry without user friction.
 
 This shape cleanly separates deterministic product logic and database persistence from ML dependencies, allowing the entire application to run seamlessly manual-first while layering AI capabilities on top.
@@ -39,7 +39,7 @@ Implements `prd.md > The Core Journey`.
        │                                            - Saves photo to ./uploads/<uuid>
        │                                            - Assigns owner = req.user._id
        │                                            - Writes item doc to MongoDB
-       │   ← Redirect to /items/:id ────────────────┘
+       │   ← Redirect to #/items/:id ───────────────┘
        │
        ├─ (5) GET /api/items/:id ─────────────────→ [Express API]
        │   ← Returns item details (WITHOUT contact) ┘
@@ -58,11 +58,11 @@ Implements `prd.md > The Core Journey`.
 ```
 
 ## Stack
-- **Frontend:** React 18 / 19, Vite (plain JavaScript/JSX), Tailwind CSS v3/v4, Lucide-React.
+- **Frontend:** React 18 / 19, Vite (plain JavaScript/JSX), Tailwind CSS, Lucide-React.
   - *Rationale:* Fast development server, lightweight bundle, zero TypeScript compilation overhead for quick prototyping, utility-first styling for clean campus design.
   - *Docs:* [Vite Docs](https://vitejs.dev/), [React Docs](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/)
-- **Backend API:** Node.js (v18+), Express, Mongoose, Multer.
-  - *Rationale:* High-performance asynchronous I/O, straightforward schema validation with Mongoose, standard multipart handling via Multer.
+- **Backend API:** Node.js (v18+), Express, Mongoose, Multer, bcrypt (10 rounds), jsonwebtoken (JWT), express-rate-limit.
+  - *Rationale:* High-performance asynchronous I/O, straightforward schema validation with Mongoose, standard multipart handling via Multer, secure hashing with bcrypt.
   - *Docs:* [Express](https://expressjs.com/), [Mongoose](https://mongoosejs.com/), [Multer](https://github.com/expressjs/multer)
 - **Database:** MongoDB (local Community Server or Dockerized container).
   - *Rationale:* Document store fits flexible lost/found item schemas with nested attributes and dynamic match tags.
@@ -70,50 +70,50 @@ Implements `prd.md > The Core Journey`.
 - **CV Microservice:** Python 3.10+, Flask, Ultralytics YOLOv8 (`yolov8n.pt`), OpenCV (`opencv-python-headless`), NumPy, Pillow.
   - *Rationale:* YOLOv8 nano is lightweight and runs locally on CPU in <200ms; OpenCV provides deterministic color classification.
   - *Docs:* [Ultralytics YOLOv8](https://docs.ultralytics.com/), [OpenCV](https://docs.opencv.org/)
-- **Testing:** Node.js native test runner (`node --test`) or Jest for backend scoring engine unit tests.
-- **Orchestration:** Docker Compose (as final convenience layer).
+- **Testing:** Node.js native test runner (`node --test`), `mongodb-memory-server`.
+- **Orchestration:** Docker Compose.
 
 ## Phased Build Order
 The implementation follows a strict manual-first, incremental sequence:
 1. **Phase 1: Backend Foundation & Persistence**
-   - Express server setup, MongoDB connection, Mongoose `Item` model.
+   - Express server setup, MongoDB connection, Mongoose `Item` and `User` models.
    - Multer upload configuration with file validation (images only, max 5 MB).
    - CRUD routes (`POST /api/items`, `GET /api/items`, `GET /api/items/:id`, `PATCH /api/items/:id/return`).
-   - Projection guard: strictly exclude `contact` from list and detail responses.
+   - Projection guard: strictly exclude `contact` and `privateAnswerHash` from list and detail responses.
    - Separate contact reveal route (`POST /api/items/:id/reveal-contact`).
 2. **Phase 2: Explainable Matcher Engine & Seed Script**
    - Pure scoring function `matcher.js` implementing the 100-point formula and qualification rules.
    - Comprehensive unit test suite `backend/tests/matcher.test.js` validating all rules and edge cases.
    - Endpoint `GET /api/items/:id/matches` returning top 3 qualified candidates with reason chips.
-   - Database seed script `seed.js` creating 5 real sample items (4 active + 1 returned) with local images.
+   - Database seed script `seed.js` creating 5 real sample items with 2 demo user accounts.
 3. **Phase 3: React Frontend (Manual-First Baseline)**
    - Vite + Tailwind setup with clean campus design system and light theme.
-   - Feed page (`/`) with responsive cards and Type/Category/Status filters.
-   - Report page (`/report`) with image upload preview and always-visible, fully editable dropdowns.
-   - Item detail page (`/items/:id`) with Top Matches panel, click-to-reveal contact, and "Mark as returned" modal.
-   - *Milestone Check:* Complete manual-first application verified end-to-end on localhost.
+   - Feed page (`#/`) with responsive cards and Type/Category/Status filters.
+   - Report page (`#/report`) with image upload preview and always-visible, fully editable dropdowns.
+   - Item detail page (`#/items/:id`) with Top Matches panel, click-to-reveal contact, and "Mark as returned" modal.
 4. **Phase 4: Flask CV Microservice & Express Proxy**
    - Flask server setup with YOLOv8 category detection and OpenCV HSV dominant color extraction.
-   - Pre-download `yolov8n.pt` into `cv-service/`.
    - Express proxy `POST /api/detect` with in-memory upload handling and 3-second timeout fallback.
    - Frontend auto-tagging integration with "Suggested automatically. Please check" indicator.
-5. **Phase 5: Docker Compose & Ship Preparation**
-   - Root `docker-compose.yml` orchestrating MongoDB, Flask, Express, and React.
-   - Rehearsal of the 1-minute demo flow and documentation update.
+5. **Phase 5: User Accounts, Navigation, and UI Redesign**
+   - User registration and login with bcrypt password hashing and 7-day JWTs.
+   - Route guards (`GuestRoute`, `ProtectedRoute`, session restore loading spinner).
+   - Refined navigation bar: Brand left, Home/Report dropdown/About center (Browse removed), Search/Login/Notifications or Search/Notifications/Avatar right.
+   - Redesigned Item Detail page with two-column layout, image lightbox expand, badges, and Top Likely Matches panel with custom empty illustration.
+   - User Profile page (`#/profile`) with stats, filter tabs, and owner return actions.
+   - Persistent global footer with navigation and community links.
 
 ## Where It Runs and How Someone Tries It
 - **Runtime Environment:** Windows / macOS / Linux with Node.js v18+, Python 3.10+, and MongoDB.
 
 ### Baseline Local Startup (Without Docker)
-1. **MongoDB:** Start local MongoDB instance on port `27017` (`mongod`).
+1. **MongoDB:** Start local MongoDB instance on port `27017` (`mongod`) or connect to MongoDB Atlas.
 2. **Flask CV Service:**
    ```bash
    cd cv-service
    python -m venv venv
    ./venv/Scripts/activate  # on Windows (or source venv/bin/activate on macOS/Linux)
    pip install -r requirements.txt
-   # Pre-download YOLOv8 nano model weights into cv-service/
-   python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
    python app.py
    # Runs on http://localhost:5001
    ```
@@ -121,9 +121,9 @@ The implementation follows a strict manual-first, incremental sequence:
    ```bash
    cd backend
    npm install
-   npm run seed    # Seeds 5 items (4 active + 1 returned)
-   npm test        # Runs matcher unit tests
-   npm run dev     # Runs on http://localhost:5000
+   npm run seed    # Seeds 2 demo users and 5 sample items
+   npm test        # Runs all 35 automated tests
+   npm start       # Runs on http://localhost:5000
    ```
 4. **Frontend:**
    ```bash
@@ -155,7 +155,7 @@ docker-compose up --build
   ```env
   VITE_API_URL=http://localhost:5000/api
   ```
-- **`.gitignore` Rules (Updated at Project Root):**
+- **`.gitignore` Rules (at Project Root):**
   ```gitignore
   # Node & Python dependencies
   node_modules/
@@ -166,7 +166,7 @@ docker-compose up --build
   # Build outputs
   frontend/dist/
   
-  # Uploaded image files (preserve directory with placeholder)
+  # Uploaded image files (preserve sample seeds)
   backend/uploads/*
   !backend/uploads/.gitkeep
   !backend/uploads/sample-*.jpg
@@ -185,7 +185,7 @@ Carried forward from `prd.md > Look and Feel`.
   - Page Background: `#f8fafc`
   - Card Background: `#ffffff`
   - Card Border: `#e2e8f0`
-  - Primary Accent: `#4338ca` (links, primary buttons, active filter pills)
+  - Primary Accent: `#4338ca` / `#3b82f6` (deep royal blue for buttons, links, active filter pills)
   - "Lost" Badge: Text `#d97706`, Background `#fef3c7`
   - "Found" Badge: Text `#0d9488`, Background `#ccfbf1`
   - "Returned" Badge: Text `#6b7280`, Background `#f3f4f6`
@@ -193,28 +193,43 @@ Carried forward from `prd.md > Look and Feel`.
   - Reason Chips: Text `#0369a1`, Background `#e0f2fe`
   - Body Text: `#0f172a`, Secondary Metadata: `#64748b`
 - **Typography:** Sans-serif (Inter with system fallbacks).
-- **Cards & Shapes:** Rounded corners (`rounded-xl`), soft borders (`border border-slate-200`), consistent 4:3 aspect ratio thumbnails, accessible contrast.
+- **Cards & Shapes:** Rounded corners (`rounded-xl` / `rounded-2xl`), soft borders (`border border-slate-200`), consistent 4:3 aspect ratio thumbnails, accessible contrast.
 
-## Components
+## Frontend Routing and Route Protection
 
-### Frontend Components (`frontend/src/`)
-Implements `prd.md > Screens and Layout`.
+### 1. Hash-Based Client Routing
+The single-page application uses `window.location.hash` with fallback to `pathname` for client routing:
+- **Public Routes:**
+  - `#/` (Feed / Home) — displays public feed and search results.
+  - `#/items/:id` (Item Detail Page) — displays item details, image lightbox, contact reveal challenge, and top qualified matches.
+  - `#/about` (About Page) — overview of app purpose, AI matching, and privacy.
+- **Guest-Only Routes (wrapped with `GuestRoute`):**
+  - `#/login` (Login Page) — redirects authenticated users to `#/` via `window.location.replace` to prevent browser history loops.
+  - `#/register` (Register Page) — redirects authenticated users to `#/`.
+- **Protected Routes (wrapped with `ProtectedRoute`):**
+  - `#/report` (Report Page) — redirects unauthenticated users to `#/login?redirect=/report`.
+  - `#/profile` / `#/my-posts` (Profile Page) — redirects unauthenticated users to `#/login?redirect=/profile`.
+- **Session Restore Loading State:**
+  - Displays a centered `LoadingSpinner` while the initial `GET /api/auth/me` request verifies the token stored in `localStorage`, preventing brief unauthorized flashes or false redirects.
 
-- `Navbar.jsx`: Implements `prd.md > 1. Main Feed`. Displays branding, dual action buttons ("Report Lost Item", "Report Found Item"), and auth controls ("Login" button or circular profile avatar dropdown).
-- `FilterBar.jsx`: Implements `prd.md > Item Feed & Filtering`. Controls Type, Category, and Status pills.
-- `ItemCard.jsx`: Implements `prd.md > Cards Grid`. Renders thumbnail, badges, tags, truncated description, date, and location. Contact info is strictly excluded.
-- `FeedGrid.jsx`: Implements `prd.md > Empty State` and responsive grid layout (1 col mobile, 2-3 col desktop).
-- `ReportForm.jsx`: Implements `prd.md > 2. Report Item Page`. Handles photo select, preview, async call to `/api/detect`, manual-first dropdowns, validation, and submission (requires authentication; redirects to login if unauthenticated).
-- `ItemDetail.jsx`: Implements `prd.md > 3. Item Detail & Match Page`. Displays full details, contact reveal trigger (requires auth and challenge modal if configured), "Mark as returned" button (visible only to the item owner), and the Top Matches panel.
-- `MatchCard.jsx`: Implements `prd.md > Explainable Top-3 Matching`. Displays match tier badge, score breakdown, applied reason chips, and links to candidate item.
-- `LoginPage.jsx`: Implements `prd.md > 4. Login Page`. Handles email/password authentication, returns JWT, persists to localStorage via AuthContext, and redirects.
-- `RegisterPage.jsx`: Implements `prd.md > 5. Register Page`. Form with email and password (min 8 chars) validation, creates account, logs in user.
-- `MyPostsPage.jsx`: Implements `prd.md > 6. My Posts Page`. Lists current user's items from `GET /api/items/mine`, with direct "Mark as returned" action for active posts.
-- `AuthContext.jsx`: Provides reactive authentication state (`user`, `token`, `login`, `register`, `logout`) with safe `localStorage` access wrapped in try/catch blocks.
+### 2. Frontend Components (`frontend/src/`)
+- `Navbar.jsx`: Global header displaying brand icon/title, center navigation (Home, Report dropdown with lost/found options, About), desktop Search bar, Login button or circular Profile avatar dropdown (email, My Profile, Logout), and responsive mobile drawer.
+- `Footer.jsx`: Global footer displaying brand information, navigation links (Home, About, Contact), community reporting links, dynamic copyright year, and hackathon POC disclaimer.
+- `RouteGuards.jsx`: Exports `GuestRoute`, `ProtectedRoute`, and `LoadingSpinner` components enforcing navigation rules.
+- `FilterBar.jsx`: Type, Category, and Status filter pill controls.
+- `ItemCard.jsx`: Feed card rendering thumbnail, type/status badges, tags, truncated description, date, and location. Contact info is strictly excluded.
+- `FeedGrid.jsx`: Responsive feed grid (1 col mobile, 2-3 col desktop) with empty filter state.
+- `ReportForm.jsx`: Photo select, preview, async call to `/api/detect`, manual dropdowns, custody input, optional private challenge, and validation.
+- `DetailPage.jsx`: Two-column layout with photo container, type & status badges, expand button (`Maximize2`), custody details, contact reveal challenge modal with copy button, owner "Mark as returned" button, and Top Likely Matches panel with count badge and custom empty state illustration.
+- `MatchCard.jsx`: Candidate match card displaying tier badge, score breakdown, applied reason chips, and links to candidate item.
+- `ProfilePage.jsx`: User profile dashboard with user email, join date, member badge, statistics (total reports, active listings, returned count), tab filters (All/Active/Returned), item list, and owner return action.
+- `AboutPage.jsx`: Information on system architecture, explainable matching rules, and student privacy.
+- `LoginPage.jsx`: Email/password login with redirect handling.
+- `RegisterPage.jsx`: Email/password registration with 8-character validation.
+- `AuthContext.jsx`: Reactive authentication provider (`user`, `token`, `login`, `register`, `logout`) with safe `localStorage` access wrapped in try/catch blocks.
+- `Modal.jsx`: Accessible popup dialog.
 
-### Backend Endpoints (`backend/src/routes/`)
-Implements `prd.md > Features and Behavior`.
-
+## Backend Endpoints (`backend/src/routes/`)
 - `POST /api/auth/register`: Validates email (format) and password (length >= 8). Rate limited. Hashes password with bcrypt (10 rounds). Saves new `User`. Returns `{ token, user: { id, email } }`. Never returns passwordHash or logs passwords.
 - `POST /api/auth/login`: Rate limited. Validates credentials. Returns `{ token, user: { id, email } }` with 7-day JWT expiry. Never returns passwordHash or logs passwords.
 - `GET /api/auth/me`: Requires JWT auth header (`Bearer <token>`). Returns `{ user: { id, email } }`.
@@ -226,9 +241,6 @@ Implements `prd.md > Features and Behavior`.
 - `GET /api/items/:id/matches`: Implements `prd.md > Explainable Top-3 Matching`. Queries opposite-side active items, runs scoring algorithm, returns top 3 items meeting qualification rule and score ≥ 25.
 - `POST /api/items/:id/reveal-contact`: Requires JWT auth header. If item has a `privateQuestion`, requires `{ answer }` in request body. Validates trimmed lowercased SHA-256 hash. Allows max 3 failed attempts before a 5-minute lockout (HTTP 429). On success (or if no private question), returns `{ contact: item.contact }`.
 - `PATCH /api/items/:id/return`: Requires JWT auth header. Allowed ONLY if `item.owner.equals(req.user._id)`; returns HTTP 403 Forbidden otherwise. Sets `status: 'returned'`.
-
-### Flask CV Microservice (`cv-service/`)
-- `POST /detect`: Accepts multipart file `image`. Runs YOLOv8 inference. If detected, extracts bounding box; otherwise uses center crop (middle 50% width/height). Converts crop to HSV and applies pixel classification. Returns JSON `{ category: string, color: string }`.
 
 ## Explainable Matching Engine & Scoring Specification
 
@@ -296,11 +308,6 @@ Backend unit test file `backend/tests/matcher.test.js` verifying:
   - `green`: `35 ≤ Hue < 85` and `Saturation ≥ 40` and `Value ≥ 45`
   - `blue`: `85 ≤ Hue < 135` and `Saturation ≥ 40` and `Value ≥ 45`
   - `brown`: `10 ≤ Hue < 25` and `Saturation ≥ 40` and `45 ≤ Value < 140`
-- **Off-Palette Hue Mapping:**
-  - *Orange (`10 ≤ Hue < 18`):* Maps to `red` (if dark/brown) or `yellow` (if bright).
-  - *Purple / Violet (`135 ≤ Hue < 155`):* Maps to `blue` or `red`.
-  - *Pink (`155 ≤ Hue < 165`):* Maps to `red`.
-  - *Beige / Tan:* Low saturation with moderate/high value maps to `white` or `brown`.
 - Count classified pixels; the category with highest frequency wins (majority vote). If ambiguous, returns `"other"`.
 
 ## Data Model
@@ -359,8 +366,8 @@ const itemSchema = new mongoose.Schema({
 
 ### Seed Data Specification (`backend/src/seeds/seed.js`)
 Creates two demo user accounts:
-- `alice@campus.edu` (demo password documented in README: `demopassword123`)
-- `bob@campus.edu` (demo password documented in README: `demopassword123`)
+- `alice@campus.edu` (demo password: `demopassword123`)
+- `bob@campus.edu` (demo password: `demopassword123`)
 
 Pre-populates 5 items associated with these demo owners:
 1. **Found Blue Backpack:** (`found`, `bag`, `blue`, description: *"Waterproof nylon backpack with black zip and padded straps"*, location: *"Library 2nd floor desk"*, owner: Alice, `active`)
@@ -369,15 +376,14 @@ Pre-populates 5 items associated with these demo owners:
 4. **Found Red Umbrella:** (`found`, `umbrella`, `red`, description: *"Compact folding umbrella with wooden handle"*, location: *"Main Gate security"*, owner: Bob, `active`)
 5. **Returned Blue Bag:** (`lost`, `bag`, `blue`, description: *"Small blue canvas tote bag"*, location: *"Auditorium foyer"*, owner: Alice, `returned`)
 
-*Demo Keyword Pair:* The seeded Found Blue Backpack and the newly posted Lost Backpack share two explicit non-stopword keywords: `"zip"` and `"straps"`, guaranteeing an exact demonstrable reason chip (`"2 shared keywords: zip, straps"`).
-
 ## File Structure
 ```
 campus-lost-found/
 ├── backend/
 │   ├── src/
 │   │   ├── config/
-│   │   │   └── db.js                 # MongoDB connection
+│   │   │   ├── db.js                 # MongoDB connection
+│   │   │   └── jwt.js                # Fail-fast JWT secret configuration
 │   │   ├── middleware/
 │   │   │   └── auth.js               # JWT auth verification middleware
 │   │   ├── models/
@@ -393,10 +399,10 @@ campus-lost-found/
 │   │   │   └── seed.js               # 2-user, 5-item seed script with real sample images
 │   │   └── index.js                  # Express app entry & static /uploads serving
 │   ├── tests/
-│   │   ├── matcher.test.js           # Scoring engine unit tests
-│   │   ├── items.test.js             # Items API & contact reveal tests
-│   │   └── auth.test.js              # User auth, registration, login & ownership tests
-│   ├── uploads/                      # Local uploaded image files
+│   │   ├── api.test.js               # API lifecycle & contact privacy tests
+│   │   ├── auth.test.js              # Auth, ownership & route protection tests
+│   │   └── matcher.test.js           # Scoring engine unit tests
+│   ├── uploads/                      # Committed seed photos & local uploads
 │   ├── package.json
 │   └── .env.example
 ├── cv-service/
@@ -408,7 +414,9 @@ campus-lost-found/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.jsx            # Header & post buttons + auth controls
+│   │   │   ├── Navbar.jsx            # Header, brand, links, search, avatar & drawer
+│   │   │   ├── Footer.jsx            # Persistent footer with navigation and links
+│   │   │   ├── RouteGuards.jsx       # GuestRoute, ProtectedRoute, LoadingSpinner
 │   │   │   ├── FilterBar.jsx         # Type, Category, Status pill controls
 │   │   │   ├── ItemCard.jsx          # Feed card
 │   │   │   ├── FeedGrid.jsx          # Responsive card grid & empty state
@@ -419,13 +427,14 @@ campus-lost-found/
 │   │   ├── pages/
 │   │   │   ├── FeedPage.jsx          # Main feed & search
 │   │   │   ├── ReportPage.jsx        # Reporting with CV auto-tagging
-│   │   │   ├── DetailPage.jsx        # Item detail & top matches
+│   │   │   ├── DetailPage.jsx        # Redesigned item detail & matches panel
+│   │   │   ├── ProfilePage.jsx       # User profile & my reported items
+│   │   │   ├── AboutPage.jsx         # App overview & explainable AI guide
 │   │   │   ├── LoginPage.jsx         # User login form
-│   │   │   ├── RegisterPage.jsx      # User registration form
-│   │   │   └── MyPostsPage.jsx       # Current user's reported items
+│   │   │   └── RegisterPage.jsx      # User registration form
 │   │   ├── services/
 │   │   │   └── api.js                # Axios client with Auth header injection
-│   │   ├── App.jsx                   # Router & routes
+│   │   ├── App.jsx                   # Hash router, route definitions & guards
 │   │   ├── main.jsx                  # React DOM root
 │   │   └── index.css                 # Tailwind directives
 │   ├── index.html
@@ -437,60 +446,20 @@ campus-lost-found/
     ├── scope.md
     ├── prd.md
     ├── spec.md
-    └── checklist.md
+    ├── checklist.md
+    └── app-map.html
 ```
-│   │   │   ├── FilterBar.jsx         # Type/category/status filters
-│   │   │   ├── ItemCard.jsx          # Feed item card
-│   │   │   ├── MatchCard.jsx         # Item detail match card with chips
-│   │   │   └── Modal.jsx             # Confirmation dialogs
-│   │   ├── pages/
-│   │   │   ├── FeedPage.jsx          # Main home view (/)
-│   │   │   ├── ReportPage.jsx        # Post creation view (/report)
-│   │   │   └── DetailPage.jsx        # Item details and matches (/items/:id)
-│   │   ├── services/
-│   │   │   └── api.js                # Axios API client
-│   │   ├── App.jsx                   # Router setup
-│   │   └── main.jsx
-│   ├── index.html
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── vite.config.js
-│   └── .env.example
-├── devpost/
-│   ├── learner-profile.md
-│   ├── scope.md
-│   ├── prd.md
-│   └── spec.md
-├── docker-compose.yml
-├── .gitignore
-└── README.md
-```
-
-## External Services and Dependencies
-- **MongoDB Server:** Port `27017`. Zero cloud dependencies required for local run.
-- **YOLOv8 Nano Weights:** `yolov8n.pt` pre-downloaded or cached in `cv-service/` (~6MB), runs entirely offline on CPU.
-- **Node Modules & Python Packages:** Standard open-source libraries only; zero paid API keys or subscription services required.
-
-## Important Failure Modes
-1. **Flask CV Service Offline / Timeout:**
-   - *Failure:* Flask is down or takes >3 seconds.
-   - *Fallback:* Express catches the error/timeout and returns `{ category: 'other', color: null }`. Frontend displays no error banner; category dropdown remains on "other" and the user selects tags manually.
-2. **Oversized or Non-Image Upload:**
-   - *Failure:* User uploads a PDF or >5MB file.
-   - *Fallback:* Multer memory/disk limits reject the file immediately with a red inline message: *"Please upload an image file (JPG, PNG, WebP) under 5 MB."* User's form inputs are preserved.
-3. **No Opposite-Side Matches:**
-   - *Failure:* No candidate items satisfy category/reasons or score ≥ 25.
-   - *Fallback:* Right column renders the "No matches yet" placeholder with helpful advice to add more details.
 
 ## What Was Simplified and Why
 - **Express Proxy for CV Detection** instead of direct browser-to-Flask communication — eliminates cross-origin setup issues and keeps ML endpoints private behind backend API boundaries.
 - **Local Filesystem Image Storage (`/uploads`)** instead of AWS S3 or Cloudinary — eliminates cloud account creation and API credential management for an afternoon PoC.
 - **Deterministic Heuristic Matching** instead of Vector Embeddings / Vector Databases — ensures complete explainability with human-readable reason chips, eliminates heavy embedding model overhead, and makes verification trivial via unit tests.
-- **Separate Contact Reveal API** instead of User Accounts and Auth Tokens — achieves essential contact privacy from public feeds without adding login/session infrastructure.
+- **JWT Authentication with Local bcrypt Hashing** instead of complex OAuth or Campus SSO — provides real user ownership and secure item returns without external provider dependencies.
+- **Hash-Based Routing with Route Guards** instead of full browser history server configuration — ensures seamless navigation on static hosts and local development servers without route 404s.
 
 ## Decisions and Open Issues
 - **Learner Decisions Recorded:**
-  - Explicit build order: Backend -> Matcher & Tests -> Frontend Manual-First -> Flask CV Enhancement -> Docker Compose.
+  - Explicit build order: Backend -> Matcher & Tests -> Frontend Manual-First -> Flask CV Enhancement -> User Accounts -> Navigation & Detail Redesign -> Documentation Synchronization.
   - Express proxy pattern for `POST /api/detect` with 3-second timeout, in-memory validation, and zero disk writes on preview.
   - Strict privacy guard: `contact` is never returned in `GET /api/items` or `GET /api/items/:id`.
   - Candidate qualification: same category OR ≥2 reasons, plus score ≥ 25.
@@ -500,4 +469,4 @@ campus-lost-found/
   - Color extraction: HSV bounding box crop with center crop fallback and explicit off-palette hue mapping.
   - Seed script: 5 small real images including 1 returned item, with 2 shared keywords ("zip", "straps") for demo predictability.
   - Pre-download instruction for `yolov8n.pt`.
-- **Open Issues:** None. Ready to build!
+- **Open Issues:** None. Ready to ship!

@@ -19,7 +19,7 @@ College students, campus staff, and campus facility/security desk attendants who
 3. User adds short details (description, location, required contact info, where the item is now if found, and an optional private ownership question/answer for found items). The item is associated with the authenticated user as owner.
 4. User visits the item page to view the top 3 opposite-side matches scored with visible reasons.
 5. Claimant logs in and clicks "Contact the poster" (answering the private ownership question if configured) to reveal contact info and coordinates pickup offline.
-6. The item owner views their item (from item page or "My posts") and clicks "Mark as returned" to resolve the post.
+6. The item owner views their item (from item page or "My Profile") and clicks "Mark as returned" to resolve the post.
 
 ## Inspiration & Identity
 - Clean, card-based web feed (modern, uncluttered, similar to a streamlined campus directory or community board).
@@ -37,14 +37,17 @@ A crisp ~1-minute demo running locally:
 4. User posts a lost backpack with a short description ("black zip, blue bag, lost near canteen").
 5. Aha moment: The lost item page immediately shows the found backpack as the #1 match with clear reasons ("Same category, same color, 2 shared keywords, close date").
 6. Claimant logs in, clicks "Contact the poster" (answering verification question if required) to call the reveal endpoint and display contact info.
-7. Item owner navigates to item or "My posts" and clicks "Mark as returned" to transition the item out of the active matching feed.
+7. Item owner navigates to item or "My Profile" and clicks "Mark as returned" to transition the item out of the active matching feed.
 8. Brief glimpse of the repository showing `scope.md`, `prd.md`, and `spec.md` planned before coding.
 
 ## The POC Boundary
 - **In Scope (Now):**
-  - Responsive web UI in React + Tailwind (Feed, Post Form, Item Detail with Match Panel, Login, Register, My Posts).
+  - Responsive web UI in React + Tailwind (Feed, Post Form, Redesigned Item Detail with Top Matches Panel, Login, Register, My Profile page).
+  - Client-side routing with hash router and route guards (`GuestRoute`, `ProtectedRoute`, session restore spinner).
+  - Global navigation bar: Left (Brand & graduation cap), Center (Home, Report dropdown with lost/found links, About), Right (Search, Login, Notifications when logged out; Search, Notifications, Profile Avatar with email, My Profile, Logout when logged in).
+  - Global footer: Campus Lost & Found logo and mission, navigation links (Home, About, Contact Support), community links (Report Lost, Report Found), dynamic copyright year and POC notice.
   - User authentication: Registration and login using bcrypt password hashing and 7-day JWTs, rate-limited auth endpoints, and current user retrieval (`/api/auth/me`).
-  - Item ownership: Authenticated item posting associating items with users, "My posts" view (`/api/items/mine`), and owner-only return action (`PATCH /api/items/:id/return` returning 403 for non-owners).
+  - Item ownership: Authenticated item posting associating items with users, "My Profile" view (`/api/items/mine`), and owner-only return action (`PATCH /api/items/:id/return` returning 403 for non-owners).
   - Protected contact reveal: Authenticated claimants can reveal contact (`/api/items/:id/reveal-contact`), while public feed and item details strictly omit contact info.
   - Feed filters (filter by type: Lost/Found, filter by Category, filter by status: Active/Returned).
   - Image upload with preview for lost/found items.
@@ -54,12 +57,13 @@ A crisp ~1-minute demo running locally:
   - Flask CV microservice using YOLOv8 (common objects) and OpenCV (color extraction) to enhance auto-tagging.
   - Item status lifecycle (`active` vs. `returned`), filtering returned items out of active matching.
   - Database seed script with 2 demo users and sample items for immediate demo readiness.
-  - Baseline local run instructions (npm/python processes) with Docker Compose.
+  - Baseline local run instructions (npm/python processes) with Docker Compose configuration.
 
 ## Known Limitations
 - **No Password Reset / Email Verification:** User accounts rely on simple email/password registration without email confirmation or password recovery workflows.
 - **Lost Item Contact Visibility:** While found items can be protected with private ownership challenges, lost items reveal contact to any logged-in user without a challenge so finders can reach the owner quickly.
 - **In-Memory Lockout / Rate Limits:** Lockout timestamps are stored per-item in the database; auth endpoints use in-memory rate limiting.
+- **Client-Side Notification Bell:** The navbar notification bell is a UI placeholder (`alert()`) and does not connect to a backend notification center.
 
 ## Later
 - Campus map view / pin drop for item locations.

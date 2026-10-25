@@ -15,14 +15,17 @@ Campus Lost & Found allows students and campus staff to report lost or found bel
 ## Features
 
 - **User Accounts & Authentication:** Secure email/password registration and login with bcrypt password hashing (10 salt rounds), rate-limited authentication endpoints, and 7-day JWT tokens.
-- **Item Ownership & "My Posts" View:** Items are linked directly to registered users. The "My posts" dashboard gives users a centralized place to monitor and resolve all items they have reported.
+- **User Profile & Post Management:** Items are linked directly to registered users. The "My Profile" dashboard (`#/profile`) displays account stats (total reports, active listings, returned count), tab filters (All/Active/Returned), and owner resolution controls.
 - **Owner-Only Return Authorization:** Replacing fragile paper manage codes, marking an item returned (`PATCH /api/items/:id/return`) is strictly restricted to the authenticated item owner (non-owners receive HTTP 403 Forbidden).
 - **AI Photo Auto-Tagging:** Instant client-side preview; Express in-memory proxy forwards the photo to a Flask microservice running YOLOv8 nano and OpenCV HSV color extraction to suggest category and color tags.
 - **Manual-First Fallback:** Dropdowns remain 100% editable at all times. If the CV service is offline or times out, the application falls back gracefully with zero error banners or form blockers.
 - **Explainable Matching Engine:** Deterministic scoring algorithm surfaces top 3 opposite-side matches with clear reason chips (e.g., `"Same category"`, `"Same color"`, `"2 shared keywords: straps, zip"`, `"Same location area"`).
-- **Privacy-Preserving Contact Reveal:** Contact phone/email is strictly excluded from list and detail payloads (`.select('-contact')`) and revealed only to authenticated users who click **"Contact the poster"**.
+- **Privacy-Preserving Contact Reveal:** Contact phone/email is strictly excluded from list and detail payloads (`.select('-contact -privateAnswerHash')`) and revealed only to authenticated users who click **"Contact the poster"**.
 - **Private Ownership Verification Challenge:** Found item posters can set an optional ownership question. The answer is stored hashed (trimmed, lowercased, SHA-256) and never returned by any endpoint. Claimants must answer correctly (max 3 attempts per item before a 5-minute lockout) to reveal contact info.
-- **Responsive Filtering:** Filter the feed by report type (Lost / Found), category, and status (Active / Returned).
+- **Redesigned Item Detail Experience:** Modern two-column layout with overlaid type and status badges, image lightbox expand modal (`Maximize2`), custody information, royal blue contact reveal button, and a Top Likely Matches panel featuring candidate count badges and custom empty state illustrations (`MatchesEmptyIllustration`).
+- **Global Navbar & Responsive Navigation:** Brand link on the left, Home, Report dropdown ("Report Lost Item" and "Report Found Item"), and About in the center ("Browse" link removed), desktop Search input, Login button or circular Profile avatar dropdown (email header, My Profile, Logout) on the right, plus responsive mobile drawer.
+- **Route Guards & Safe Session Restore:** Client-side hash routing protected by `GuestRoute` (redirects logged-in users to home without history loops), `ProtectedRoute` (preserves intended destination upon login), and a loading spinner during session restore to prevent flashes.
+- **Persistent Global Footer:** Footer across all pages with brand mission, navigation (Home, About, Contact Support), community reporting links, dynamic copyright year, and hackathon POC notice.
 
 ---
 
@@ -102,11 +105,11 @@ campus-lost-found/
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── components/           # Navbar, FilterBar, ItemCard, MatchCard, Modal, Footer
+│   │   ├── components/           # Navbar, Footer, RouteGuards, FilterBar, ItemCard, MatchCard, Modal
 │   │   ├── context/              # AuthContext (user, token, login, register, logout)
-│   │   ├── pages/                # FeedPage, ReportPage, DetailPage, LoginPage, RegisterPage, MyPostsPage, AboutPage
+│   │   ├── pages/                # FeedPage, ReportPage, DetailPage, ProfilePage, AboutPage, LoginPage, RegisterPage
 │   │   ├── services/api.js       # Axios API client with auth interceptor
-│   │   ├── App.jsx
+│   │   ├── App.jsx               # Hash routing & route protection
 │   │   └── main.jsx
 │   ├── nginx.conf                # Nginx proxy config for production build
 │   ├── Dockerfile
@@ -206,7 +209,7 @@ npm run seed
 ```
 *Populates 5 sample items owned by 2 demo users, with verified keyword overlap (`"zip"`, `"straps"`) for demo predictability.*
 
-> **Demo Accounts (Created by Seed Script — passwords for local evaluation only):**
+> **Demo Accounts (Created by Seed Script — for demo and evaluation only):**
 > - **Alice:** `alice@campus.edu` / `demopassword123` (owns seeded backpack, phone, tote)
 > - **Bob:** `bob@campus.edu` / `demopassword123` (owns seeded water bottle, umbrella)
 
@@ -241,13 +244,13 @@ npm test
 ```
 
 **What is tested (35 automated tests across 3 test suites):**
-- **Authentication & Registration:** User creation, duplicate email rejection, email formatting and 8-character password enforcement, rate limiting, and 7-day JWT issuance.
+- **Authentication & Registration (15 tests):** User creation, duplicate email rejection, email formatting and 8-character password enforcement, rate limiting, and 7-day JWT issuance.
 - **Login & Route Protection:** Valid credential login, invalid password rejection, and 401 Unauthorized enforcement across all protected endpoints.
 - **Item Ownership & Returns:** Items tied to authenticated owner; "My posts" endpoint (`/api/items/mine`); owner-authorized returns (200 OK) and non-owner return rejection (403 Forbidden).
-- **Contact Privacy & Verification Challenges:** Contact strictly excluded from list/detail payloads; login required for contact reveal; private questions enforce 3-attempt limit and 5-minute lockout; verified answer reveals contact.
+- **Contact Privacy & Verification Challenges (10 tests):** Contact strictly excluded from list/detail payloads; login required for contact reveal; private questions enforce 3-attempt limit and 5-minute lockout; verified answer reveals contact.
 - **Security Protections:** Assertions confirming neither `passwordHash` nor `privateAnswerHash` is ever exposed in any response.
-- **Matching Engine:** Deterministic scoring factor calculations (Category, Color, Keywords, Location, Date), stopword filtering, and PRD qualification rule enforcement.
-- **Computer Vision Fallback:** Express proxy fallback when Flask CV microservice is unreachable.
+- **Matching Engine (7 tests):** Deterministic scoring factor calculations (Category, Color, Keywords, Location, Date), stopword filtering, and PRD qualification rule enforcement.
+- **Computer Vision Fallback (3 tests):** Express proxy fallback when Flask CV microservice is unreachable.
 
 ---
 
@@ -292,10 +295,15 @@ This project was built following a strict plan-first methodology under the **Bui
 
 ## Known Limitations
 
-1. **Object Detection Vocabulary:** YOLOv8 nano is trained on the standard COCO dataset. It accurately detects bags (`backpack`, `handbag`, `suitcase`), phones (`cell phone`), bottles, umbrellas, laptops, and books. Other items default to `"other"`, relying on manual dropdown selection.
-2. **Lighting Sensitivity in Color Extraction:** HSV color classification uses majority vote on the bounding box. Extreme reflections, strong shadows, or complex multi-color patterns can lead to unexpected dominant color votes.
-3. **No Password Reset / Email Verification:** User accounts use bcrypt and standard 7-day JWT tokens for local prototype use. Password reset workflows, email confirmation links, refresh tokens, and institutional SSO (CAS/SAML) are not implemented in this proof of concept.
-4. **Direct Contact Reveal on Lost Items:** While found items can be protected with private ownership challenges, lost items reveal contact to logged-in users without a challenge so finders can reach the owner quickly.
+1. **Token Storage in `localStorage`:** JWT tokens are stored in browser `localStorage` for development convenience. In high-security production environments, `HttpOnly` Secure cookies would be preferred.
+2. **In-Memory Rate Limiting:** Authentication rate limiting uses in-memory express-rate-limit; in clustered deployments, a Redis-backed store would be required.
+3. **No Password Reset / Email Verification:** User accounts use bcrypt and 7-day JWT tokens without email confirmation links, password reset workflows, or institutional SSO.
+4. **Client-Side Notification Bell:** The navbar notification bell is a UI placeholder that displays an `alert()` and is not backed by a database notification queue.
+5. **Client-Side Search:** The navbar search bar filters items within the client feed; there is no backend full-text search indexing endpoint.
+6. **Object Detection Vocabulary:** YOLOv8 nano is trained on the COCO dataset. It recognizes standard campus items (bags, phones, bottles, umbrellas, laptops, books). Unrecognized items default to `"other"`, relying on manual dropdown selection.
+7. **Lighting Sensitivity in Color Extraction:** HSV color classification uses majority vote on the bounding box. Extreme reflections, strong shadows, or complex multi-color patterns can lead to unexpected dominant color votes.
+8. **Direct Contact Reveal on Lost Items:** While found items can be protected with private ownership challenges, lost items reveal contact to logged-in users without a challenge so finders can reach the owner quickly.
+9. **Docker Execution Status:** All multi-container Docker configuration files are included in the repository and validated via `docker compose config`. However, live execution via `docker compose up --build` was not executed end-to-end on this host due to local OS administrator service permissions.
 
 ---
 
