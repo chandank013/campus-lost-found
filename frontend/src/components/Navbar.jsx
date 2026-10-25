@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GraduationCap, Search, Plus, LogIn, LogOut, Package } from 'lucide-react';
+import { GraduationCap, Search, Plus, LogIn, LogOut, Package, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+// Shared styling for primary action buttons in the navbar (Report Lost, Report Found, Login)
+const navPrimaryBtnClass = "flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary";
 
 export default function Navbar({ onNavigate }) {
   const { user, logout } = useAuth();
@@ -48,8 +51,6 @@ export default function Navbar({ onNavigate }) {
     };
   }, [isDropdownOpen]);
 
-  const userInitial = (user?.email?.[0] || 'U').toUpperCase();
-
   return (
     <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2 sm:gap-4">
@@ -74,7 +75,7 @@ export default function Navbar({ onNavigate }) {
           {/* Report Lost Item button */}
           <button
             onClick={() => handleReportClick('lost')}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            className={navPrimaryBtnClass}
             title="Report Lost Item"
           >
             <Search size={15} strokeWidth={2.5} />
@@ -88,7 +89,7 @@ export default function Navbar({ onNavigate }) {
           {/* Report Found Item button */}
           <button
             onClick={() => handleReportClick('found')}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            className={navPrimaryBtnClass}
             title="Report Found Item"
           >
             <Plus size={16} strokeWidth={2.5} />
@@ -108,11 +109,11 @@ export default function Navbar({ onNavigate }) {
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
                 aria-haspopup="menu"
                 aria-expanded={isDropdownOpen}
-                aria-label={`User account menu for ${user.email}`}
+                aria-label="Account menu"
                 title={user.email}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary hover:bg-primary-hover text-white font-extrabold text-sm sm:text-base flex items-center justify-center transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary select-none cursor-pointer"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary select-none cursor-pointer"
               >
-                {userInitial}
+                <User size={19} className="text-white" />
               </button>
 
               {/* Dropdown Menu */}
@@ -170,7 +171,7 @@ export default function Navbar({ onNavigate }) {
             <div className="pl-1 sm:pl-2 border-l border-slate-200">
               <button
                 onClick={() => onNavigate('login')}
-                className="flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm transition-colors shadow-2xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                className={navPrimaryBtnClass}
               >
                 <LogIn size={15} />
                 <span>Login</span>
