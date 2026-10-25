@@ -130,7 +130,7 @@ Activity mode: Live app and editor, paired with standalone `devpost/app-map.html
   Verify (mechanical): `npm run build` succeeds with zero errors.
   Commit: `feat(ui): add auth context, login/register pages, navbar auth controls, and my-posts view`
 
-- [ ] **Slice C: Seed Data with Demo Users, Docker Environment, README & Limitations Update**
+- [x] **Slice C: Seed Data with Demo Users, Docker Environment, README & Limitations Update**
   Becomes usable:
     1. Database seed script updated with 2 demo users (`alice@campus.edu`, `bob@campus.edu`, password `demopassword123` documented as demo-only in README) owning the seeded items.
     2. `JWT_SECRET` added to `.env.example`, `.env`, and Docker Compose environment.

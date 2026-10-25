@@ -14,12 +14,14 @@ Campus Lost & Found allows students and campus staff to report lost or found bel
 
 ## Features
 
+- **User Accounts & Authentication:** Secure email/password registration and login with bcrypt password hashing (10 salt rounds), rate-limited authentication endpoints, and 7-day JWT tokens.
+- **Item Ownership & "My Posts" View:** Items are linked directly to registered users. The "My posts" dashboard gives users a centralized place to monitor and resolve all items they have reported.
+- **Owner-Only Return Authorization:** Replacing fragile paper manage codes, marking an item returned (`PATCH /api/items/:id/return`) is strictly restricted to the authenticated item owner (non-owners receive HTTP 403 Forbidden).
 - **AI Photo Auto-Tagging:** Instant client-side preview; Express in-memory proxy forwards the photo to a Flask microservice running YOLOv8 nano and OpenCV HSV color extraction to suggest category and color tags.
 - **Manual-First Fallback:** Dropdowns remain 100% editable at all times. If the CV service is offline or times out, the application falls back gracefully with zero error banners or form blockers.
 - **Explainable Matching Engine:** Deterministic scoring algorithm surfaces top 3 opposite-side matches with clear reason chips (e.g., `"Same category"`, `"Same color"`, `"2 shared keywords: straps, zip"`, `"Same location area"`).
-- **Privacy-Preserving Contact Reveal:** Contact phone/email is strictly excluded from list and detail payloads (`.select('-contact')`) and revealed only when a claimant clicks **"Contact the poster"**.
+- **Privacy-Preserving Contact Reveal:** Contact phone/email is strictly excluded from list and detail payloads (`.select('-contact')`) and revealed only to authenticated users who click **"Contact the poster"**.
 - **Private Ownership Verification Challenge:** Found item posters can set an optional ownership question. The answer is stored hashed (trimmed, lowercased, SHA-256) and never returned by any endpoint. Claimants must answer correctly (max 3 attempts per item before a 5-minute lockout) to reveal contact info.
-- **Authorized Lifecycle Resolution via Manage Codes:** On creation, each item receives a one-time manage code (`RET-XXXX`) shown once in the UI. Marking an item as returned (`PATCH /api/items/:id/return`) strictly requires this code to prevent unauthorized closure.
 - **Responsive Filtering:** Filter the feed by report type (Lost / Found), category, and status (Active / Returned).
 
 ---
@@ -54,8 +56,8 @@ To qualify as a valid match, a candidate must satisfy:
 
 ## Tech Stack
 
-- **Frontend:** React 18, Vite, Tailwind CSS, Lucide icons (100% Plain JavaScript / JSX).
-- **Backend API:** Node.js, Express, Multer (in-memory & disk storage), Mongoose.
+- **Frontend:** React 18, Vite, Tailwind CSS, Lucide icons, Axios (100% Plain JavaScript / JSX).
+- **Backend API:** Node.js, Express, bcrypt, jsonwebtoken (JWT), express-rate-limit, Multer, Mongoose.
 - **Database:** MongoDB Atlas (or local MongoDB).
 - **Computer Vision Microservice:** Python 3.11+, Flask, Ultralytics YOLOv8 nano (`yolov8n.pt`), OpenCV (`opencv-python-headless`), Pillow, NumPy.
 - **Testing:** Node.js native test runner (`node --test`), `mongodb-memory-server`.
@@ -69,16 +71,24 @@ To qualify as a valid match, a candidate must satisfy:
 campus-lost-found/
 ├── backend/
 │   ├── src/
-│   │   ├── config/db.js          # MongoDB Mongoose connection
-│   │   ├── models/Item.js        # Item schema & validation
+│   │   ├── config/
+│   │   │   ├── db.js             # MongoDB Mongoose connection
+│   │   │   └── jwt.js            # Fail-fast JWT secret configuration
+│   │   ├── middleware/
+│   │   │   └── auth.js           # JWT verification middleware
+│   │   ├── models/
+│   │   │   ├── Item.js           # Item schema (with owner reference)
+│   │   │   └── User.js           # User schema (email, passwordHash)
 │   │   ├── routes/
+│   │   │   ├── auth.js           # Register, login, me endpoints
 │   │   │   ├── detect.js         # In-memory proxy to Flask CV service
-│   │   │   └── items.js          # CRUD, matches, contact reveal, return
+│   │   │   └── items.js          # CRUD, matches, contact reveal, return, mine
 │   │   ├── services/matcher.js   # Deterministic scoring algorithm
-│   │   ├── seeds/seed.js         # Idempotent 5-item demo seed script
+│   │   ├── seeds/seed.js         # 2-user, 5-item demo seed script
 │   │   └── index.js              # Express app entry & static file serving
 │   ├── tests/
-│   │   ├── api.test.js           # API lifecycle & privacy tests
+│   │   ├── api.test.js           # API lifecycle & contact privacy tests
+│   │   ├── auth.test.js          # Auth, ownership & route protection tests
 │   │   └── matcher.test.js       # Scoring engine unit tests
 │   ├── uploads/                  # Committed seed photos & local uploads
 │   ├── Dockerfile
@@ -92,9 +102,10 @@ campus-lost-found/
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── components/           # Navbar, FilterBar, ItemCard, MatchCard, Modal
-│   │   ├── pages/                # FeedPage, ReportPage, DetailPage
-│   │   ├── services/api.js       # Axios API client
+│   │   ├── components/           # Navbar, FilterBar, ItemCard, MatchCard, Modal, Footer
+│   │   ├── context/              # AuthContext (user, token, login, register, logout)
+│   │   ├── pages/                # FeedPage, ReportPage, DetailPage, LoginPage, RegisterPage, MyPostsPage, AboutPage
+│   │   ├── services/api.js       # Axios API client with auth interceptor
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── nginx.conf                # Nginx proxy config for production build
@@ -134,11 +145,12 @@ Copy the example environment file in `backend`:
 cd backend
 cp .env.example .env
 ```
-Edit `backend/.env` with your MongoDB connection string:
+Edit `backend/.env` with your MongoDB connection string and JWT secret:
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/campus_lost_found
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/campus_lost_found
 FLASK_SERVICE_URL=http://localhost:5001
+JWT_SECRET=your-jwt-secret-key-change-in-production
 ```
 *(Return to project root: `cd ..`)*
 
@@ -188,11 +200,15 @@ cd backend
 npm install
 ```
 
-**Seed initial demo items:**
+**Seed initial demo items and users:**
 ```bash
 npm run seed
 ```
-*Populates 5 sample items with verified keyword overlap (`"zip"`, `"straps"`) for demo predictability.*
+*Populates 5 sample items owned by 2 demo users, with verified keyword overlap (`"zip"`, `"straps"`) for demo predictability.*
+
+> **Demo Accounts (Created by Seed Script — passwords for local evaluation only):**
+> - **Alice:** `alice@campus.edu` / `demopassword123` (owns seeded backpack, phone, tote)
+> - **Bob:** `bob@campus.edu` / `demopassword123` (owns seeded water bottle, umbrella)
 
 **Start the Express backend:**
 ```bash
@@ -224,13 +240,14 @@ cd backend
 npm test
 ```
 
-**What is tested (15 test cases):**
-- Item creation, storage, and feed retrieval with strict contact exclusion.
-- Dedicated `/reveal-contact` endpoint functionality.
-- Item status transition to `returned`.
-- Proxy fallback when Flask CV service is unreachable.
-- Scoring engine factor calculations (Category, Color, Keywords, Location, Date).
-- Stopword filtering and PRD qualification rule enforcement.
+**What is tested (35 automated tests across 3 test suites):**
+- **Authentication & Registration:** User creation, duplicate email rejection, email formatting and 8-character password enforcement, rate limiting, and 7-day JWT issuance.
+- **Login & Route Protection:** Valid credential login, invalid password rejection, and 401 Unauthorized enforcement across all protected endpoints.
+- **Item Ownership & Returns:** Items tied to authenticated owner; "My posts" endpoint (`/api/items/mine`); owner-authorized returns (200 OK) and non-owner return rejection (403 Forbidden).
+- **Contact Privacy & Verification Challenges:** Contact strictly excluded from list/detail payloads; login required for contact reveal; private questions enforce 3-attempt limit and 5-minute lockout; verified answer reveals contact.
+- **Security Protections:** Assertions confirming neither `passwordHash` nor `privateAnswerHash` is ever exposed in any response.
+- **Matching Engine:** Deterministic scoring factor calculations (Category, Color, Keywords, Location, Date), stopword filtering, and PRD qualification rule enforcement.
+- **Computer Vision Fallback:** Express proxy fallback when Flask CV microservice is unreachable.
 
 ---
 
@@ -240,13 +257,17 @@ npm test
 
 | Method | Endpoint | Description | Privacy / Auth Note |
 |---|---|---|---|
-| `GET` | `/api/items` | Query items by `type`, `category`, `status` | Contact info and internal hashes strictly omitted |
-| `POST` | `/api/items` | Report new item (multipart form with image) | Returns one-time `manageCode`; contact and hashes omitted |
+| `POST` | `/api/auth/register` | Register new user account | Rate-limited; password min 8 chars; returns 7-day JWT |
+| `POST` | `/api/auth/login` | Log in with email & password | Rate-limited; returns 7-day JWT |
+| `GET` | `/api/auth/me` | Fetch current user profile | Requires `Bearer <token>`; never exposes `passwordHash` |
+| `GET` | `/api/items` | Query public feed items | Contact info and internal hashes strictly omitted |
+| `GET` | `/api/items/mine` | Query items reported by current user | Requires `Bearer <token>`; contact info omitted |
+| `POST` | `/api/items` | Report new item with photo | Requires `Bearer <token>`; assigns owner; contact omitted |
 | `GET` | `/api/items/:id` | Get item details | Contact info and internal hashes strictly omitted |
 | `GET` | `/api/items/:id/matches` | Get top-3 scored candidates with chips | Excludes contact info and hashes |
-| `POST` | `/api/items/:id/reveal-contact` | Reveal contact details for an item | Requires `{ answer }` if private question set; max 3 attempts then lockout |
-| `PATCH` | `/api/items/:id/return` | Mark item as returned | Requires `{ manageCode }` matching code issued on creation |
-| `POST` | `/api/detect` | In-memory tag suggestion proxy | Proxies to Flask with 4s timeout fallback |
+| `POST` | `/api/items/:id/reveal-contact` | Reveal contact details for an item | Requires `Bearer <token>`; requires `{ answer }` if private question set |
+| `PATCH` | `/api/items/:id/return` | Mark item as returned | Requires `Bearer <token>`; restricted to item owner (403 otherwise) |
+| `POST` | `/api/detect` | In-memory tag suggestion proxy | Proxies to Flask with 3s timeout fallback |
 
 ### Flask Microservice (`http://localhost:5001`)
 
@@ -273,8 +294,8 @@ This project was built following a strict plan-first methodology under the **Bui
 
 1. **Object Detection Vocabulary:** YOLOv8 nano is trained on the standard COCO dataset. It accurately detects bags (`backpack`, `handbag`, `suitcase`), phones (`cell phone`), bottles, umbrellas, laptops, and books. Other items default to `"other"`, relying on manual dropdown selection.
 2. **Lighting Sensitivity in Color Extraction:** HSV color classification uses majority vote on the bounding box. Extreme reflections, strong shadows, or complex multi-color patterns can lead to unexpected dominant color votes.
-3. **No User Accounts / Session Logins:** Deliberately scoped out for an afternoon proof of concept. Protection is achieved via lightweight per-item manage codes (required to mark items returned) and optional private verification questions (with 3-attempt limits and lockouts) rather than full session login infrastructure. If a poster loses their manage code, they cannot mark their item returned without direct database assistance.
-4. **Direct Contact Reveal on Lost Items:** While found items can be protected with private ownership challenges, lost items reveal contact on request without a challenge so finders can reach the owner quickly.
+3. **No Password Reset / Email Verification:** User accounts use bcrypt and standard 7-day JWT tokens for local prototype use. Password reset workflows, email confirmation links, refresh tokens, and institutional SSO (CAS/SAML) are not implemented in this proof of concept.
+4. **Direct Contact Reveal on Lost Items:** While found items can be protected with private ownership challenges, lost items reveal contact to logged-in users without a challenge so finders can reach the owner quickly.
 
 ---
 
