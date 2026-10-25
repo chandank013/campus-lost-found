@@ -200,7 +200,7 @@ Carried forward from `prd.md > Look and Feel`.
 ### Frontend Components (`frontend/src/`)
 Implements `prd.md > Screens and Layout`.
 
-- `Navbar.jsx`: Implements `prd.md > 1. Main Feed`. Displays branding, dual action buttons ("I lost something", "I found something"), and auth state ("Login" or "My posts" + "Logout").
+- `Navbar.jsx`: Implements `prd.md > 1. Main Feed`. Displays branding, dual action buttons ("Report Lost Item", "Report Found Item"), and auth controls ("Login" button or circular profile avatar dropdown).
 - `FilterBar.jsx`: Implements `prd.md > Item Feed & Filtering`. Controls Type, Category, and Status pills.
 - `ItemCard.jsx`: Implements `prd.md > Cards Grid`. Renders thumbnail, badges, tags, truncated description, date, and location. Contact info is strictly excluded.
 - `FeedGrid.jsx`: Implements `prd.md > Empty State` and responsive grid layout (1 col mobile, 2-3 col desktop).

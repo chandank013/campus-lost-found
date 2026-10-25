@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { GraduationCap, Search, Plus, LogIn, LogOut, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ onNavigate }) {
   const { user, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const avatarButtonRef = useRef(null);
 
   const handleReportClick = (type) => {
     if (!user) {
@@ -18,6 +21,34 @@ export default function Navbar({ onNavigate }) {
     logout();
     onNavigate('feed');
   };
+
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+        avatarButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropdownOpen]);
+
+  const userInitial = (user?.email?.[0] || 'U').toUpperCase();
 
   return (
     <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
@@ -37,62 +68,109 @@ export default function Navbar({ onNavigate }) {
           </div>
         </div>
 
-        {/* Right: Action Buttons & Auth */}
+        {/* Right: Action Buttons & Auth Avatar / Login */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           
-          {/* I Lost Something button */}
+          {/* Report Lost Item button */}
           <button
             onClick={() => handleReportClick('lost')}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0"
-            title="I lost something"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            title="Report Lost Item"
           >
             <Search size={15} strokeWidth={2.5} />
             <span>
-              <span className="hidden sm:inline">I lost </span>
-              <span className="sm:hidden">Lost</span>
-              <span className="hidden md:inline">something</span>
+              <span className="hidden sm:inline">Report </span>
+              <span>Lost</span>
+              <span className="hidden md:inline"> Item</span>
             </span>
           </button>
 
-          {/* I Found Something button */}
+          {/* Report Found Item button */}
           <button
             onClick={() => handleReportClick('found')}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0"
-            title="I found something"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            title="Report Found Item"
           >
             <Plus size={16} strokeWidth={2.5} />
             <span>
-              <span className="hidden sm:inline">I found </span>
-              <span className="sm:hidden">Found</span>
-              <span className="hidden md:inline">something</span>
+              <span className="hidden sm:inline">Report </span>
+              <span>Found</span>
+              <span className="hidden md:inline"> Item</span>
             </span>
           </button>
 
-          {/* Auth Controls */}
+          {/* Right end: Profile Avatar Dropdown (when logged in) or Login button (when logged out) */}
           {user ? (
-            <div className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 border-l border-slate-200">
+            <div className="relative pl-1 sm:pl-2 border-l border-slate-200" ref={dropdownRef}>
               <button
-                onClick={() => onNavigate('my-posts')}
-                className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-2 rounded-xl text-slate-700 hover:text-primary-brand hover:bg-slate-100 font-bold text-xs sm:text-sm transition-colors"
-                title="My Reported Items"
+                ref={avatarButtonRef}
+                type="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={isDropdownOpen}
+                aria-label={`User account menu for ${user.email}`}
+                title={user.email}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary hover:bg-primary-hover text-white font-extrabold text-sm sm:text-base flex items-center justify-center transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary select-none cursor-pointer"
               >
-                <Package size={16} className="text-primary-brand" />
-                <span className="hidden md:inline">My posts</span>
+                {userInitial}
               </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 font-bold text-xs sm:text-sm transition-colors"
-                title="Log out"
-              >
-                <LogOut size={16} />
-                <span className="hidden lg:inline">Logout</span>
-              </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div 
+                  role="menu"
+                  aria-orientation="vertical"
+                  className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-fadeIn"
+                >
+                  {/* User Email (shown as text, NOT a link) */}
+                  <div className="px-4 py-2.5 border-b border-slate-100">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      User Account
+                    </span>
+                    <p className="text-xs font-semibold text-slate-800 truncate mt-0.5 select-text" title={user.email}>
+                      {user.email}
+                    </p>
+                  </div>
+
+                  {/* My Posts link */}
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        onNavigate('my-posts');
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-primary-brand flex items-center gap-2 transition-colors focus:bg-slate-50 focus:outline-none cursor-pointer"
+                    >
+                      <Package size={15} className="text-primary-brand" />
+                      <span>My posts</span>
+                    </button>
+                  </div>
+
+                  {/* Logout Button */}
+                  <div className="pt-1 border-t border-slate-100">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 transition-colors focus:bg-red-50 focus:outline-none cursor-pointer"
+                    >
+                      <LogOut size={15} className="text-slate-400" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="pl-1 sm:pl-2 border-l border-slate-200">
               <button
                 onClick={() => onNavigate('login')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm transition-colors shadow-2xs"
+                className="flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm transition-colors shadow-2xs focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
               >
                 <LogIn size={15} />
                 <span>Login</span>

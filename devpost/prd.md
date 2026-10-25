@@ -9,7 +9,7 @@ A streamlined, AI-assisted lost-and-found web application for college campuses t
 Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 
 ## The Core Journey
-1. **Arrival & Feed:** The student lands on the home feed. They see seeded active lost/found items arranged in a responsive grid, with filters at the top and prominent "I lost something" and "I found something" action buttons, alongside Login / My Posts in the navbar.
+1. **Arrival & Feed:** The student lands on the home feed. They see seeded active lost/found items arranged in a responsive grid, with filters at the top and prominent "Report Lost Item" and "Report Found Item" action buttons, alongside Login or the user avatar dropdown in the navbar.
 2. **Reporting an Item:** The user clicks either button and navigates to the Report page with the type pre-selected (if logged out, they are redirected to `/login`, and after authenticating, returned back to the form).
 3. **Photo & Auto-Tagging:** The user uploads a photo (required, images only, ~5 MB max). An immediate preview displays. The Flask detector analyzes the image in the background; category and color dropdowns remain always visible and editable. If recognized, tags auto-fill with a subtle "Suggested automatically. Please check" label; if unrecognized or slow, category defaults to "other" with manual selection.
 4. **Submission:** The user fills in category, color, description, location, date, required contact details (and "Where is the item now?" plus an optional private question/answer for found items), and submits. The item is saved with the authenticated user set as owner.
@@ -19,7 +19,7 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 ## Screens and Layout
 
 ### 1. Main Feed (`/`)
-- **Header:** App title "Campus Lost & Found", with primary action buttons "I lost something" and "I found something", plus auth status: "Login" (if logged out) or "My posts" link and "Logout" button (if logged in).
+- **Header:** App title "Campus Lost & Found", with primary action buttons "Report Lost Item" and "Report Found Item", plus auth status: "Login" button (if logged out) or circular profile avatar with dropdown containing user email, "My posts" link, and "Logout" button (if logged in).
 - **Filter Row:** 
   - Type: All / Lost / Found (default: All).
   - Category: All, bag, phone, bottle, umbrella, laptop, book, other (default: All).
