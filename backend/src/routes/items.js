@@ -5,13 +5,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Item } from '../models/Item.js';
 import { findTopMatches } from '../services/matcher.js';
-import {
-  hashAnswer,
-  verifyAnswer,
-  generateManageCode,
-  hashCode,
-  verifyCode
-} from '../utils/security.js';
+import { hashAnswer, verifyAnswer } from '../utils/security.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +44,7 @@ export const upload = multer({
 
 const router = express.Router();
 
-// GET /api/items — List items (strictly excludes contact and hashes)
+// GET /api/items — List public feed items (strictly excludes contact and hashes)
 router.get('/', async (req, res) => {
   try {
     const { type, category, status } = req.query;
@@ -68,7 +63,8 @@ router.get('/', async (req, res) => {
     }
 
     const items = await Item.find(filter)
-      .select('-contact -privateAnswerHash -manageCodeHash')
+      .select('-contact -privateAnswerHash')
+      .populate('owner', 'email')
       .sort({ createdAt: -1 });
 
     res.json(items);
@@ -77,11 +73,26 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/items/mine — Return current user's items (requires auth)
+router.get('/mine', requireAuth, async (req, res) => {
+  try {
+    const items = await Item.find({ owner: req.user._id })
+      .select('-contact -privateAnswerHash')
+      .populate('owner', 'email')
+      .sort({ createdAt: -1 });
+
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch your items', message: error.message });
+  }
+});
+
 // GET /api/items/:id — Single item detail (strictly excludes contact and hashes)
 router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id)
-      .select('-contact -privateAnswerHash -manageCodeHash');
+      .select('-contact -privateAnswerHash')
+      .populate('owner', 'email');
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
@@ -91,8 +102,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/items — Create new item with photo upload
-router.post('/', upload.single('image'), async (req, res) => {
+// POST /api/items — Create new item with photo upload (requires auth)
+router.post('/', requireAuth, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Photo is required (images under 5MB).' });
@@ -123,10 +134,6 @@ router.post('/', upload.single('image'), async (req, res) => {
 
     const imageUrl = `/uploads/${req.file.filename}`;
 
-    // Generate one-time item manage code
-    const manageCode = generateManageCode();
-    const manageCodeHash = hashCode(manageCode);
-
     const itemData = {
       type,
       category,
@@ -138,7 +145,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       contact,
       currentLocation: currentLocation || '',
       status: 'active',
-      manageCodeHash
+      owner: req.user._id
     };
 
     // If found item has optional private verification question & answer
@@ -154,12 +161,10 @@ router.post('/', upload.single('image'), async (req, res) => {
     const newItem = new Item(itemData);
     const saved = await newItem.save();
     
-    // Return created item with contact and internal hashes omitted, but manageCode returned ONCE
+    // Return created item with contact and internal hashes omitted
     const responseItem = saved.toObject();
     delete responseItem.contact;
     delete responseItem.privateAnswerHash;
-    delete responseItem.manageCodeHash;
-    responseItem.manageCode = manageCode;
 
     res.status(201).json(responseItem);
   } catch (error) {
@@ -170,11 +175,11 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-// GET /api/items/:id/matches — Top 3 explainable opposite-side matches
+// GET /api/items/:id/matches — Top 3 explainable opposite-side matches (public)
 router.get('/:id/matches', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id)
-      .select('-contact -privateAnswerHash -manageCodeHash');
+      .select('-contact -privateAnswerHash');
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
@@ -186,7 +191,7 @@ router.get('/:id/matches', async (req, res) => {
       type: oppositeType,
       status: 'active',
       _id: { $ne: item._id }
-    }).select('-contact -privateAnswerHash -manageCodeHash');
+    }).select('-contact -privateAnswerHash');
 
     const topMatches = findTopMatches(item, candidates);
 
@@ -196,8 +201,8 @@ router.get('/:id/matches', async (req, res) => {
   }
 });
 
-// POST /api/items/:id/reveal-contact — Contact reveal endpoint with optional verification challenge
-router.post('/:id/reveal-contact', async (req, res) => {
+// POST /api/items/:id/reveal-contact — Contact reveal endpoint (requires auth & optional question verification)
+router.post('/:id/reveal-contact', requireAuth, async (req, res) => {
   try {
     const item = await Item.findById(req.params.id)
       .select('+contact +privateAnswerHash +verificationAttempts +lockoutUntil +privateQuestion');
@@ -254,26 +259,20 @@ router.post('/:id/reveal-contact', async (req, res) => {
   }
 });
 
-// PATCH /api/items/:id/return — Mark item as returned (requires one-time manage code)
-router.patch('/:id/return', async (req, res) => {
+// PATCH /api/items/:id/return — Mark item as returned (requires auth, allowed ONLY for owner)
+router.patch('/:id/return', requireAuth, async (req, res) => {
   try {
-    const { manageCode } = req.body || {};
-    if (!manageCode || typeof manageCode !== 'string' || !manageCode.trim()) {
-      return res.status(400).json({
-        error: 'Manage code is required to mark this item as returned.'
-      });
-    }
-
     const item = await Item.findById(req.params.id)
-      .select('+manageCodeHash -contact -privateAnswerHash');
+      .select('-contact -privateAnswerHash');
 
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
 
-    if (item.manageCodeHash && !verifyCode(manageCode, item.manageCodeHash)) {
+    // Verify ownership
+    if (!item.owner || item.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({
-        error: 'Invalid manage code. Please verify the code provided when the item was reported.'
+        error: 'Forbidden. Only the owner of this item can mark it as returned.'
       });
     }
 
@@ -282,7 +281,6 @@ router.patch('/:id/return', async (req, res) => {
 
     const responseItem = item.toObject();
     delete responseItem.contact;
-    delete responseItem.manageCodeHash;
     delete responseItem.privateAnswerHash;
 
     res.json({ success: true, item: responseItem });

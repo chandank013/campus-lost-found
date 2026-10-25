@@ -9,17 +9,17 @@ A streamlined, AI-assisted lost-and-found web application for college campuses t
 Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 
 ## The Core Journey
-1. **Arrival & Feed:** The student lands on the home feed. They see seeded active lost/found items arranged in a responsive grid, with filters at the top and prominent "I lost something" and "I found something" action buttons.
-2. **Reporting an Item:** The user clicks either button and navigates to the Report page with the type pre-selected.
+1. **Arrival & Feed:** The student lands on the home feed. They see seeded active lost/found items arranged in a responsive grid, with filters at the top and prominent "I lost something" and "I found something" action buttons, alongside Login / My Posts in the navbar.
+2. **Reporting an Item:** The user clicks either button and navigates to the Report page with the type pre-selected (if logged out, they are redirected to `/login`, and after authenticating, returned back to the form).
 3. **Photo & Auto-Tagging:** The user uploads a photo (required, images only, ~5 MB max). An immediate preview displays. The Flask detector analyzes the image in the background; category and color dropdowns remain always visible and editable. If recognized, tags auto-fill with a subtle "Suggested automatically. Please check" label; if unrecognized or slow, category defaults to "other" with manual selection.
-4. **Submission:** The user fills in category, color, description, location, date, required contact details (and "Where is the item now?" plus an optional private question/answer for found items), and submits. The system issues a one-time manage code displayed once for the poster to save.
+4. **Submission:** The user fills in category, color, description, location, date, required contact details (and "Where is the item now?" plus an optional private question/answer for found items), and submits. The item is saved with the authenticated user set as owner.
 5. **Payoff on Detail Page:** Upon saving, the user is redirected directly to the new item's detail page. The item is displayed alongside the "Top matches" panel, presenting up to 3 opposite-side active items that have the same category OR at least two matching reasons.
-6. **Claim & Resolution:** A user clicks "Contact the poster" on a matching item. If the item has a private question, the claimant must answer it correctly (max 3 attempts before temporary lockout) to reveal contact info. Once resolved, the poster marks the item as returned by providing their one-time manage code, archiving the item from active matching.
+6. **Claim & Resolution:** A logged-in claimant clicks "Contact the poster" on a matching item. If the item has a private question, the claimant must answer it correctly (max 3 attempts before temporary lockout) to reveal contact info. Once resolved, the item's owner clicks "Mark as returned" (available on the item page or under "My posts"), which archives the item from active matching. Non-owners cannot mark an item returned.
 
 ## Screens and Layout
 
 ### 1. Main Feed (`/`)
-- **Header:** App title "Campus Lost & Found", with primary action buttons "I lost something" and "I found something".
+- **Header:** App title "Campus Lost & Found", with primary action buttons "I lost something" and "I found something", plus auth status: "Login" (if logged out) or "My posts" link and "Logout" button (if logged in).
 - **Filter Row:** 
   - Type: All / Lost / Found (default: All).
   - Category: All, bag, phone, bottle, umbrella, laptop, book, other (default: All).
@@ -31,6 +31,7 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 ### 2. Report Item Page (`/report`)
 - Top navigation link: "← Back to feed".
 - Pre-set header: "Report Lost Item" or "Report Found Item".
+- Auth guard: If the user is unauthenticated, redirect to `/login` with a redirect query parameter so they are returned to the report form after logging in.
 - Form fields in vertical order:
   1. Photo upload input: Required, images only (JPG, PNG, WebP), max ~5 MB, with clear error message if empty or file is invalid/too large. Renders instant image preview.
   2. Category dropdown (`bag`, `phone`, `bottle`, `umbrella`, `laptop`, `book`, `other`) — Required.
@@ -41,7 +42,7 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
   7. Contact info input (email or phone) — Required, accompanied by privacy notice: *"Contact info is hidden from the feed and shown only when someone clicks Contact the poster."*
   8. Current custody input (*Found items only*): "Where is the item now?" (e.g., "Left at Library 2nd floor desk" or "With me, contact to claim") — Required for Found.
   9. Private verification question & answer (*Found items only, Optional*): "Set an ownership question only the true owner can answer" and "Expected answer (stored hashed, case-insensitive, never revealed publicly)".
-- Submission payoff: On successful creation, a one-time manage code (e.g. `RET-XXXX`) is displayed once in a modal/banner with a copy button and a notice that it is required to mark the item as returned later.
+- Submission payoff: On successful creation, redirects directly to `/items/:id`.
 - Inline validation errors display under empty or invalid required fields upon submit without resetting user input.
 
 ### 3. Item Detail & Match Page (`/items/:id`)
@@ -49,8 +50,8 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 - Desktop layout: 2 columns (Item Details on left, Top Matches on right). Mobile layout: vertically stacked.
 - **Left Column (Item Details):** Full-size photo, Lost/Found badge, category & color tags, full description, location, date, status, and "Where it is now" (if found).
 - **Action Area:** 
-  - "Contact the poster" button: When clicked, if the item has a private question, prompts the claimant with the question in a challenge modal. Validates the answer via `/api/items/:id/reveal-contact`. Caps attempts at 3 before a 5-minute lockout. If correct (or if no private question was configured), reveals contact phone/email and a "Copy" button.
-  - "Mark as returned" button: Prompts modal with an input for the item's one-time manage code. On submit with valid code, updates status to "Returned", disables further matching, and replaces action buttons with *"This item has been returned."* Requests without the valid code are rejected.
+  - "Contact the poster" button: Requires login. When clicked, if the item has a private question, prompts the claimant with the question in a challenge modal. Validates the answer via `/api/items/:id/reveal-contact`. Caps attempts at 3 before a 5-minute lockout. If correct (or if no private question was configured), reveals contact phone/email and a "Copy" button.
+  - "Mark as returned" button: Visible ONLY to the item's owner. When clicked by the owner, prompts confirmation and updates status to "Returned", disables further matching, and replaces action buttons with *"This item has been returned."* Non-owners do not see this button; any direct API call by non-owners returns HTTP 403.
 - **Right Column ("Top matches"):**
   - Up to 3 opposite-side active items ordered by match score.
   - **Match Qualification Rule:** An item is only qualified as a match if it shares the **same category** OR has **at least two matching reasons** (e.g., same color + shared keyword).
@@ -58,6 +59,27 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
   - **Location Reason Definition:** A match on location is triggered when a meaningful word (case-insensitive, ignoring common stopwords) is shared in the location text (e.g. "Library", "Canteen", "Hostel").
   - Clicking any match card opens that item's detail view.
   - **No Matches State:** Displays *"No matches yet. We’ll show likely matches here when someone posts a matching item. Check back later."* with a helpful tip suggesting the user add more descriptive details.
+
+### 4. Login Page (`/login`)
+- Clean centered card layout with title "Login to Campus Lost & Found".
+- Inputs for Email and Password.
+- Submit button with loading state.
+- Clear error message banner for invalid credentials or server errors.
+- Redirect support (e.g. `?redirect=/report`).
+- Link to Register page: "Don't have an account? Register".
+
+### 5. Register Page (`/register`)
+- Clean centered card layout with title "Create an Account".
+- Inputs for Email and Password (valid email format, password at least 8 characters).
+- Client-side validation feedback.
+- Submit button with loading state.
+- Link to Login page: "Already have an account? Login".
+
+### 6. My Posts Page (`/my-posts`)
+- Displays all items reported by the current logged-in user (queried from `/api/items/mine`).
+- Shows thumbnail, type badge, category/color, date, and status.
+- Direct "Mark as returned" button for active items owned by the user.
+- Empty state: "You haven't reported any items yet" with quick links to report lost or found items.
 
 ## Look and Feel
 Source: `scope.md > Inspiration & Identity`.
@@ -114,19 +136,21 @@ Source: `scope.md > The Unique Kernel`.
 Source: `scope.md > Core Loop`, `scope.md > Known Limitations`.
 - As a claimant, I want to reveal contact info and mark items as returned when resolved.
   - [ ] Feed and initial item payloads omit contact details.
+  - [ ] Revealing contact info requires user authentication (`POST /api/items/:id/reveal-contact`).
   - [ ] If an item has a private question, `/api/items/:id/reveal-contact` requires the correct answer (trimmed, lowercased, validated against hash).
   - [ ] Enforces a maximum of 3 failed attempts per item, followed by a 5-minute lockout period.
-  - [ ] Items without a private question reveal contact details directly upon request.
-  - [ ] Clicking "Mark as returned" requires entering the item's one-time manage code.
-  - [ ] On valid manage code confirmation, status updates to "Returned", the item is excluded from active matching feeds, and action buttons are replaced with a resolution notice.
+  - [ ] Items without a private question reveal contact details directly upon authenticated request.
+  - [ ] "Mark as returned" is strictly restricted to the item's owner (`PATCH /api/items/:id/return` returns 403 for non-owners).
+  - [ ] On owner confirmation, status updates to "Returned", the item is excluded from active matching feeds, and action buttons are replaced with a resolution notice.
 
 ## States and Boundaries
 - **First Use / Seeded State:** The database starts pre-populated with:
-  1. A found blue backpack (`bag`, `blue`, Active)
-  2. A lost black water bottle (`bottle`, `black`, Active)
-  3. A lost grey smartphone (`phone`, `grey`, Active)
-  4. A found red umbrella (`umbrella`, `red`, Active)
-  5. One resolved returned item (`bag` or `phone`, `returned`)
+  1. Two demo user accounts (e.g., `alice@campus.edu` and `bob@campus.edu`).
+  2. A found blue backpack (`bag`, `blue`, Active) owned by Alice.
+  3. A lost black water bottle (`bottle`, `black`, Active) owned by Bob.
+  4. A lost grey smartphone (`phone`, `grey`, Active) owned by Alice.
+  5. A found red umbrella (`umbrella`, `red`, Active) owned by Bob.
+  6. One resolved returned item (`bag`, `returned`) owned by Alice.
 - **Empty Feed State:** Occurs when filters yield no matches; displays clear message and a reset button.
 - **No Matches Detail State:** When an item has zero qualified opposite-type matches, shows an encouraging message suggesting more description details.
 - **CV Offline / Error State:** If the Flask vision service is offline or takes too long, the UI displays no blocking error; dropdowns simply remain open for manual entry.
@@ -138,12 +162,13 @@ Source: `scope.md > Core Loop`, `scope.md > Known Limitations`.
 - **Location Word Matching:** Evaluates shared significant words in the location text (e.g., "Library", "Canteen") rather than brittle coordinate mapping.
 - **Separate Report Page over Modal:** Selected a full page (`/report`) because image preview and detailed input fields benefit from vertical breathing room on both desktop and mobile.
 - **Qualitative Match Tiers:** Displaying "Strong match" / "Good match" / "Possible match" alongside reason chips provides an intuitive, non-intimidating experience compared to an arbitrary percentage number.
-- **Separate Contact Reveal API:** Kept contact info out of feed and item JSON payloads, requiring an explicit user click on the detail page to fetch contact details.
+- **Separate Contact Reveal API:** Kept contact info out of feed and item JSON payloads, requiring an explicit authenticated request to fetch contact details.
 - **Manual-First AI Interaction:** Ensuring dropdowns are always visible and editable guarantees users are never stuck if the CV detector model struggles.
+- **User Ownership over Manage Codes:** Replaced fragile one-time manage codes with authenticated user accounts, ensuring posters can manage their items reliably from "My posts".
 
 ## What We're Building
-- Single-page responsive React frontend with Feed, Report Form, and Item Detail with Top-3 Match view.
-- Express API with CRUD endpoints, separate contact reveal endpoint, seed data script (5 items: 4 active across bag, bottle, phone, umbrella + 1 returned), and explainable heuristic matching logic.
+- Single-page responsive React frontend with Feed, Report Form, Item Detail with Top-3 Match view, Login, Register, and My Posts.
+- Express API with JWT authentication, CRUD endpoints, separate contact reveal endpoint, seed data script (2 demo users + 5 items), and explainable heuristic matching logic.
 - Lightweight Flask CV service (YOLOv8 + OpenCV) for image category and color inference.
 - Local startup workflow with Docker Compose configuration as the final step.
 
@@ -153,9 +178,12 @@ Source: `scope.md > Core Loop`, `scope.md > Known Limitations`.
 - **Multimodal Embeddings:** Vector DB / CLIP embeddings deferred in favor of clear, explainable heuristic scoring.
 
 ## Non-Goals
-- **Full User Accounts / Passwords:** No persistent user accounts, session tokens, or profile management; protection is handled via lightweight per-item manage codes and private question hashes.
+- **Email Verification & Password Reset:** Simplified account model without third-party email service dependencies.
+- **Roles & Admin UI:** All users have standard privileges; no dedicated administrative dashboard in the prototype.
+- **OAuth / SSO & Refresh Tokens:** Local bcrypt authentication with standard 7-day JWTs; campus single sign-on deferred.
 - **In-App Messaging / Chat:** No live WebSocket chat; users coordinate pickup via disclosed email/phone.
 - **Native Mobile Apps:** No iOS/Android builds; fully responsive mobile browser web app only.
+- **Complex Multi-Stage Claim Arbitration:** No legalistic verification or campus admin adjudication; verification uses direct question challenges and physical confirmation.
 - **Complex Multi-Stage Claim Arbitration:** No legalistic verification or campus admin adjudication; verification uses direct question challenges and physical confirmation.
 
 ## Open Questions

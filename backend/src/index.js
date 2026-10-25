@@ -4,10 +4,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
+import { getJwtSecret } from './config/jwt.js';
 import itemsRouter from './routes/items.js';
 import detectRouter from './routes/detect.js';
+import authRouter from './routes/auth.js';
 
 dotenv.config();
+
+// Fail fast if JWT_SECRET is missing
+getJwtSecret();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/items', itemsRouter);
 app.use('/api/detect', detectRouter);
 

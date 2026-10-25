@@ -14,48 +14,52 @@ Computer vision auto-tagging (category and dominant color) paired with transpare
 College students, campus staff, and campus facility/security desk attendants who currently rely on chaotic WhatsApp groups where lost item notices get buried in minutes.
 
 ## The Core Loop
-1. User opens the web app and clicks "I lost something" or "I found something".
-2. User uploads a photo; the system provides category and color dropdowns (auto-filled by the Flask detector when available, or defaulting to "other" / manual selection).
-3. User adds short details (description, location, required contact info, where the item is now if found, and an optional private ownership question/answer for found items). On creation, the system issues a one-time manage code shown once to the poster.
+1. User opens the web app, browses the public feed, or registers/logs in with email and password.
+2. User uploads a photo to report an item; the system provides category and color dropdowns (auto-filled by the Flask detector when available, or defaulting to "other" / manual selection).
+3. User adds short details (description, location, required contact info, where the item is now if found, and an optional private ownership question/answer for found items). The item is associated with the authenticated user as owner.
 4. User visits the item page to view the top 3 opposite-side matches scored with visible reasons.
-5. Claimant clicks "Contact the poster" (answering the private ownership question if configured) to reveal contact info, coordinates pickup offline, and uses their one-time manage code to "Mark as returned" to resolve the post.
+5. Claimant logs in and clicks "Contact the poster" (answering the private ownership question if configured) to reveal contact info and coordinates pickup offline.
+6. The item owner views their item (from item page or "My posts") and clicks "Mark as returned" to resolve the post.
 
 ## Inspiration & Identity
 - Clean, card-based web feed (modern, uncluttered, similar to a streamlined campus directory or community board).
 - Honest, trustworthy tone: matches clearly show *why* they matched instead of hiding behind an opaque percentage.
-- Utilitarian and direct: zero barriers to post or search.
+- Utilitarian and direct: fast registration and login, public browsing, protected contact reveal and item resolution.
 
 ## Why This Matters to the Learner
-Combines full-stack engineering (React, Node, Express, MongoDB) with computer vision (YOLOv8, OpenCV) to solve a genuine, everyday problem observed firsthand on campus, while practicing a disciplined plan-first agent workflow.
+Combines full-stack engineering (React, Node, Express, MongoDB) with computer vision (YOLOv8, OpenCV) and token-based authentication (bcrypt, JWT) to solve a genuine, everyday problem observed firsthand on campus, while practicing a disciplined plan-first agent workflow.
 
 ## What "Working" Looks Like
 A crisp ~1-minute demo running locally:
 1. Localhost feed opens populated with 3–4 seeded items.
-2. User posts a found blue backpack; the detector auto-tags `bag` and `blue` (editable tags). Poster adds location "Library 2nd floor desk" and contact info.
-3. User posts a lost backpack with a short description ("black zip, blue bag, lost near canteen").
-4. Aha moment: The lost item page immediately shows the found backpack as the #1 match with clear reasons ("Same category, same color, 2 shared keywords, close date").
-5. User clicks "Contact the poster" to call the reveal endpoint and display contact info, then clicks "Mark as returned" to transition the item out of the active matching feed.
-6. Brief glimpse of the repository showing `scope.md`, `prd.md`, and `spec.md` planned before coding.
+2. User registers or logs in with demo credentials.
+3. User posts a found blue backpack; the detector auto-tags `bag` and `blue` (editable tags). Poster adds location "Library 2nd floor desk" and contact info.
+4. User posts a lost backpack with a short description ("black zip, blue bag, lost near canteen").
+5. Aha moment: The lost item page immediately shows the found backpack as the #1 match with clear reasons ("Same category, same color, 2 shared keywords, close date").
+6. Claimant logs in, clicks "Contact the poster" (answering verification question if required) to call the reveal endpoint and display contact info.
+7. Item owner navigates to item or "My posts" and clicks "Mark as returned" to transition the item out of the active matching feed.
+8. Brief glimpse of the repository showing `scope.md`, `prd.md`, and `spec.md` planned before coding.
 
 ## The POC Boundary
 - **In Scope (Now):**
-  - Responsive web UI in React + Tailwind (Feed, Post Form, Item Detail with Match Panel).
+  - Responsive web UI in React + Tailwind (Feed, Post Form, Item Detail with Match Panel, Login, Register, My Posts).
+  - User authentication: Registration and login using bcrypt password hashing and 7-day JWTs, rate-limited auth endpoints, and current user retrieval (`/api/auth/me`).
+  - Item ownership: Authenticated item posting associating items with users, "My posts" view (`/api/items/mine`), and owner-only return action (`PATCH /api/items/:id/return` returning 403 for non-owners).
+  - Protected contact reveal: Authenticated claimants can reveal contact (`/api/items/:id/reveal-contact`), while public feed and item details strictly omit contact info.
   - Feed filters (filter by type: Lost/Found, filter by Category, filter by status: Active/Returned).
   - Image upload with preview for lost/found items.
   - Manual-first category and color selection (dropdowns always visible; unrecognized items default to "other"; tags are fully editable).
   - Express + MongoDB backend for CRUD operations and rule-based heuristic matching.
-  - Separate contact reveal endpoint (`/api/items/:id/reveal-contact`) ensuring contact details are excluded from feed and public item payloads.
   - Optional private ownership question & answer on found items (hashed answer, 3-attempt limit with lockout before revealing contact).
-  - One-time manage code issued upon creation, required by `PATCH /api/items/:id/return` to prevent unauthorized closure.
-  - Flask CV microservice using YOLOv8 (common objects) and OpenCV (color extraction) added last to enhance auto-tagging.
+  - Flask CV microservice using YOLOv8 (common objects) and OpenCV (color extraction) to enhance auto-tagging.
   - Item status lifecycle (`active` vs. `returned`), filtering returned items out of active matching.
-  - Database seed script with 3–4 sample items for immediate demo readiness.
-  - Baseline local run instructions (npm/python processes) with Docker Compose added as a final convenience step.
+  - Database seed script with 2 demo users and sample items for immediate demo readiness.
+  - Baseline local run instructions (npm/python processes) with Docker Compose.
 
 ## Known Limitations
-- **Lost Item Contact Visibility:** While found items can be protected with private ownership challenges, lost items reveal contact on request without a challenge so finders can reach the owner quickly.
-- **Manage Code Recovery:** Without user accounts or email recovery, if a poster loses their one-time manage code, they cannot mark their item as returned without database administrator assistance.
-- **In-Memory Lockout / Rate Limits:** Lockout timestamps are stored per-item in the database; distributed IP-based rate limiting is omitted to keep the proof of concept lightweight.
+- **No Password Reset / Email Verification:** User accounts rely on simple email/password registration without email confirmation or password recovery workflows.
+- **Lost Item Contact Visibility:** While found items can be protected with private ownership challenges, lost items reveal contact to any logged-in user without a challenge so finders can reach the owner quickly.
+- **In-Memory Lockout / Rate Limits:** Lockout timestamps are stored per-item in the database; auth endpoints use in-memory rate limiting.
 
 ## Later
 - Campus map view / pin drop for item locations.
@@ -64,7 +68,10 @@ A crisp ~1-minute demo running locally:
 - Campus admin dashboard and audit logs for campus security desks.
 
 ## Explicitly Cut
-- **User authentication / logins:** Cut to keep the build afternoon-sized; separate reveal endpoint + click-to-reveal provides practical privacy without auth overhead.
+- **Email verification & password reset:** Cut to keep auth focused on core ownership and identity without external email provider dependencies.
+- **Roles & admin UI:** Cut; all users have standard student privileges.
+- **OAuth / Campus SSO:** Cut; standard email/password authentication is used for the prototype.
+- **Refresh tokens:** Cut in favor of standard 7-day JWT expiration.
 - **In-app chat:** Cut to eliminate real-time socket infrastructure; coordination happens directly via student email/phone.
 - **Native mobile app:** Cut in favor of a responsive web application that runs anywhere on campus without app store distribution.
-- **Complex multi-stage claim verification:** Cut procedural verification workflows; finders simply ask claimants to describe an unphotographed detail (prompted via description hint text).
+- **Complex multi-stage claim verification:** Cut procedural verification workflows; finders use private questions and physical confirmation.

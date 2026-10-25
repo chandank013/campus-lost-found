@@ -50,6 +50,11 @@ const itemSchema = new mongoose.Schema({
     enum: ['active', 'returned'],
     default: 'active'
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Item owner is required']
+  },
   // Private ownership verification challenge (found items)
   privateQuestion: {
     type: String,
@@ -68,12 +73,6 @@ const itemSchema = new mongoose.Schema({
   lockoutUntil: {
     type: Date,
     default: null
-  },
-  // Item resolution authorization
-  manageCodeHash: {
-    type: String,
-    default: null,
-    select: false
   }
 }, {
   timestamps: true

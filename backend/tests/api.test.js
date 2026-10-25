@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import app from '../src/index.js';
 import { Item } from '../src/models/Item.js';
+import { User } from '../src/models/User.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +16,8 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
   let mongoServer;
   let server;
   let baseUrl;
-  let itemManageCode;
+  let userToken;
+  let userId;
   let createdItemId;
   const testImagePath = path.join(__dirname, 'test-image.jpg');
 
@@ -24,6 +26,7 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
 
   t.before(async () => {
     process.env.NODE_ENV = 'test';
+    process.env.JWT_SECRET = 'test_jwt_secret_lifecycle_2026';
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
@@ -38,6 +41,19 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
         resolve();
       });
     });
+
+    // Register test user
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'tester@campus.edu',
+        password: 'password1234'
+      })
+    });
+    const data = await res.json();
+    userToken = data.token;
+    userId = data.user.id;
   });
 
   t.after(async () => {
@@ -52,7 +68,7 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     if (fs.existsSync(testImagePath)) fs.unlinkSync(testImagePath);
   });
 
-  await t.test('POST /api/items creates item, returns one-time manageCode, and omits contact and hashes', async () => {
+  await t.test('POST /api/items creates item with authenticated user, omits contact and hashes', async () => {
     const formData = new FormData();
     formData.append('type', 'lost');
     formData.append('category', 'bag');
@@ -64,6 +80,7 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
 
     const res = await fetch(`${baseUrl}/api/items`, {
       method: 'POST',
+      headers: { 'Authorization': `Bearer ${userToken}` },
       body: formData
     });
 
@@ -73,23 +90,22 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     createdItemId = data._id;
     assert.equal(data.category, 'bag');
     assert.equal(data.color, 'blue');
+    assert.equal(data.owner, userId);
     assert.equal(data.contact, undefined, 'contact MUST NOT be in response');
-    assert.ok(data.manageCode, 'manageCode MUST be returned on creation');
-    assert.match(data.manageCode, /^RET-[A-F0-9]+$/);
-    itemManageCode = data.manageCode;
+    assert.equal(data.manageCode, undefined, 'manageCode logic is removed');
     assert.equal(data.manageCodeHash, undefined, 'manageCodeHash MUST NOT be in response');
     assert.equal(data.privateAnswerHash, undefined, 'privateAnswerHash MUST NOT be in response');
   });
 
-  await t.test('GET /api/items returns items strictly excluding contact, code hash, and answer hash', async () => {
+  await t.test('GET /api/items returns public feed strictly excluding contact, code hash, and answer hash', async () => {
     const res = await fetch(`${baseUrl}/api/items`);
     assert.equal(res.status, 200);
     const items = await res.json();
     assert.ok(items.length >= 1);
     assert.equal(items[0].contact, undefined, 'contact MUST NOT be in feed payload');
-    assert.equal(items[0].manageCode, undefined, 'manageCode MUST NOT be in feed payload');
-    assert.equal(items[0].manageCodeHash, undefined, 'manageCodeHash MUST NOT be in feed payload');
-    assert.equal(items[0].privateAnswerHash, undefined, 'privateAnswerHash MUST NOT be in feed payload');
+    assert.equal(items[0].manageCode, undefined);
+    assert.equal(items[0].manageCodeHash, undefined);
+    assert.equal(items[0].privateAnswerHash, undefined);
   });
 
   await t.test('GET /api/items/:id excludes contact, code hash, and answer hash', async () => {
@@ -98,14 +114,15 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     const data = await res.json();
     assert.equal(data.category, 'bag');
     assert.equal(data.contact, undefined, 'contact MUST NOT be in detail payload');
-    assert.equal(data.manageCode, undefined, 'manageCode MUST NOT be in detail payload');
-    assert.equal(data.manageCodeHash, undefined, 'manageCodeHash MUST NOT be in detail payload');
-    assert.equal(data.privateAnswerHash, undefined, 'privateAnswerHash MUST NOT be in detail payload');
+    assert.equal(data.manageCode, undefined);
+    assert.equal(data.manageCodeHash, undefined);
+    assert.equal(data.privateAnswerHash, undefined);
   });
 
   await t.test('POST /api/items/:id/reveal-contact reveals contact directly when item has no private question', async () => {
     const res = await fetch(`${baseUrl}/api/items/${createdItemId}/reveal-contact`, {
-      method: 'POST'
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${userToken}` }
     });
     assert.equal(res.status, 200);
     const data = await res.json();
@@ -114,39 +131,18 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     assert.equal(data.privateAnswerHash, undefined);
   });
 
-  await t.test('PATCH /api/items/:id/return rejects request when manageCode is missing', async () => {
+  await t.test('PATCH /api/items/:id/return marks item returned when called by owner', async () => {
     const res = await fetch(`${baseUrl}/api/items/${createdItemId}/return`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    assert.equal(res.status, 400);
-    const data = await res.json();
-    assert.match(data.error, /Manage code is required/);
-  });
-
-  await t.test('PATCH /api/items/:id/return rejects request when manageCode is invalid', async () => {
-    const res = await fetch(`${baseUrl}/api/items/${createdItemId}/return`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manageCode: 'RET-WRONG' })
-    });
-    assert.equal(res.status, 403);
-    const data = await res.json();
-    assert.match(data.error, /Invalid manage code/);
-  });
-
-  await t.test('PATCH /api/items/:id/return marks item returned when correct manageCode is provided', async () => {
-    const res = await fetch(`${baseUrl}/api/items/${createdItemId}/return`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manageCode: itemManageCode })
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      }
     });
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.item.status, 'returned');
     assert.equal(data.item.contact, undefined, 'contact MUST NOT be in return response');
-    assert.equal(data.item.manageCodeHash, undefined, 'manageCodeHash MUST NOT be in return response');
     assert.equal(data.item.privateAnswerHash, undefined, 'privateAnswerHash MUST NOT be in return response');
   });
 
@@ -168,6 +164,7 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
 
     const res = await fetch(`${baseUrl}/api/items`, {
       method: 'POST',
+      headers: { 'Authorization': `Bearer ${userToken}` },
       body: formData
     });
 
@@ -184,7 +181,10 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
   await t.test('reveal-contact fails and reveals nothing when wrong answer is supplied', async () => {
     const res = await fetch(`${baseUrl}/api/items/${challengedItemId}/reveal-contact`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ answer: 'Apple logo' })
     });
 
@@ -198,7 +198,10 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     // 2nd failure
     const res2 = await fetch(`${baseUrl}/api/items/${challengedItemId}/reveal-contact`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ answer: 'GitHub Octocat' })
     });
     assert.equal(res2.status, 401);
@@ -208,7 +211,10 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     // 3rd failure triggers lockout
     const res3 = await fetch(`${baseUrl}/api/items/${challengedItemId}/reveal-contact`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ answer: 'Linux Tux' })
     });
     assert.equal(res3.status, 429);
@@ -219,7 +225,10 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     // 4th attempt (even with correct answer while locked out) is blocked with 429
     const res4 = await fetch(`${baseUrl}/api/items/${challengedItemId}/reveal-contact`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ answer: 'NASA Astronaut' })
     });
     assert.equal(res4.status, 429);
@@ -244,6 +253,7 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
 
     const createRes = await fetch(`${baseUrl}/api/items`, {
       method: 'POST',
+      headers: { 'Authorization': `Bearer ${userToken}` },
       body: formData
     });
     assert.equal(createRes.status, 201);
@@ -252,7 +262,10 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     // Verify correct answer with lowercased and padded text
     const revealRes = await fetch(`${baseUrl}/api/items/${created._id}/reveal-contact`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ answer: '  totes  ' })
     });
 
@@ -260,7 +273,6 @@ test('Backend API & Contact Privacy Lifecycle', async (t) => {
     const revealData = await revealRes.json();
     assert.equal(revealData.contact, 'canteen.staff@campus.edu');
     assert.equal(revealData.privateAnswerHash, undefined);
-    assert.equal(revealData.manageCodeHash, undefined);
   });
 
   await t.test('POST /api/detect returns fallback or detection object with 200 OK', async () => {

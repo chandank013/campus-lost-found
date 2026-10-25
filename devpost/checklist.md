@@ -102,3 +102,39 @@ Activity mode: Live app and editor, paired with standalone `devpost/app-map.html
     - Run automated tests in `backend/tests/api.test.js` validating: wrong answer reveals nothing (401), correct answer reveals contact (200), lockout triggered after 3 failures (429), return without code rejected (400), return with wrong code rejected (403), and neither answer hash nor code hash is ever returned.
     - Frontend build compiles cleanly (`npm run build`).
   Commit: `feat(security): add private ownership verification challenge and one-time item manage codes`
+
+- [x] **Slice A (Backend): User Accounts, JWT Authentication, and Item Ownership**
+  Becomes usable:
+    1. User model (`email` unique/lowercased, `passwordHash`, `createdAt`).
+    2. `POST /api/auth/register` and `POST /api/auth/login` using bcrypt (10 rounds) and JWT (7-day expiry, fail-fast if `JWT_SECRET` missing).
+    3. Input validation (valid email format, password at least 8 chars) and `express-rate-limit` on login and register. Never return `passwordHash` or log passwords.
+    4. Auth middleware verifying JWT and attaching `req.user`.
+    5. `GET /api/auth/me` returning current user profile (`id`, `email`).
+    6. `Item` schema updated with `owner` (ref User, required); remove `manageCodeHash` logic.
+    7. `POST /api/items` requires auth and assigns `owner: req.user._id`.
+    8. `POST /api/items/:id/reveal-contact` requires auth.
+    9. `PATCH /api/items/:id/return` allowed ONLY for item owner (returns 403 otherwise).
+    10. `GET /api/items/mine` returns current user's items.
+    11. Maintain private question challenge & attempt limits; keep public feed/matches public and contact strictly hidden.
+  Verify (mechanical): Unit/integration tests in `backend/tests/auth.test.js` testing register, duplicate email rejection, login success/wrong password, token rejection on protected routes, owner can mark returned, non-owner gets 403, reveal-contact requires login, and passwordHash/answer hash never returned.
+  Commit: `feat(auth): implement user model, jwt auth, route protection, and item ownership`
+
+- [ ] **Slice B (Frontend): Auth Context, Login/Register Pages, Navbar Auth, and My Posts**
+  Becomes usable:
+    1. Token storage in `localStorage` wrapped in safe `try/catch`.
+    2. React `AuthContext` providing user state, login, register, and logout.
+    3. `LoginPage` and `RegisterPage` with validation feedback and redirect support.
+    4. Navbar shows "Login" when logged out, or "My posts" link and "Logout" button when logged in (retaining lost/found action buttons; unauthenticated click redirects to login, then returns to form).
+    5. `MyPostsPage` listing user's reported items with status and direct "Mark as returned" button.
+    6. Item detail page displays "Mark as returned" only to the item owner.
+  Verify (mechanical): `npm run build` succeeds with zero errors.
+  Commit: `feat(ui): add auth context, login/register pages, navbar auth controls, and my-posts view`
+
+- [ ] **Slice C: Seed Data with Demo Users, Docker Environment, README & Limitations Update**
+  Becomes usable:
+    1. Database seed script updated with 2 demo users (`alice@campus.edu`, `bob@campus.edu`, password `demopassword123` documented as demo-only in README) owning the seeded items.
+    2. `JWT_SECRET` added to `.env.example`, `.env`, and Docker Compose environment.
+    3. `README.md` and `Known Limitations` updated to reflect real user accounts and removal of manage codes.
+    4. Full test suite passing.
+  Verify (mechanical): `npm test` passes all tests; `npm run build` passes; seed runs cleanly.
+  Commit: `chore(ship): update seed data with demo users, docker env, and documentation for accounts`

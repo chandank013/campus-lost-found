@@ -22,7 +22,10 @@ Implements `prd.md > The Core Journey`.
        ├─ (1) GET /api/items?status=active ───────→ [Express API] ───→ [MongoDB]
        │   ← Returns seeded feed items (no contact) ──┴───────────────┘
        │
-       ├─ (2) Select Photo Preview ──────────────→ [Express POST /api/detect]
+       ├─ (2) POST /api/auth/login or register ───→ [Express API] ───→ [MongoDB User]
+       │   ← Returns { token, user: { id, email } } ──┘
+       │
+       ├─ (3) Select Photo Preview ──────────────→ [Express POST /api/detect]
        │                                                    │ (in-memory buffer, ≤5MB, 3s timeout)
        │                                                    ▼
        │                                            [Flask CV Service]
@@ -31,23 +34,27 @@ Implements `prd.md > The Core Journey`.
        │   ← Returns { category, color } ───────────────────┘
        │     (or { category: "other", color: null } on error)
        │
-       ├─ (3) Submit POST /api/items (multipart) ─→ [Express API]
+       ├─ (4) Submit POST /api/items (Auth token) → [Express API]
        │                                            - Validates photo (≤5MB, image/*)
        │                                            - Saves photo to ./uploads/<uuid>
+       │                                            - Assigns owner = req.user._id
        │                                            - Writes item doc to MongoDB
        │   ← Redirect to /items/:id ────────────────┘
        │
-       ├─ (4) GET /api/items/:id ─────────────────→ [Express API]
+       ├─ (5) GET /api/items/:id ─────────────────→ [Express API]
        │   ← Returns item details (WITHOUT contact) ┘
        │
-       ├─ (5) GET /api/items/:id/matches ─────────→ [Express API]
+       ├─ (6) GET /api/items/:id/matches ─────────→ [Express API]
        │                                            - Queries active opposite-type items
        │                                            - Runs scoring engine & reason rules
        │                                            - Filters: PRD rule AND score ≥ 25
        │   ← Returns top 3 matches with reasons ────┘
        │
-       └─ (6) POST /api/items/:id/reveal-contact ─→ [Express API]
-           ← Returns { contact: "email/phone" } ────┘
+       ├─ (7) POST /api/items/:id/reveal-contact ─→ [Express API] (Auth token)
+       │   ← Returns { contact: "email/phone" } ────┘ (after verifying question if present)
+       │
+       └─ (8) PATCH /api/items/:id/return ────────→ [Express API] (Auth token)
+           ← Returns { message: "Item marked returned" } (Allowed ONLY for item owner; 403 otherwise)
 ```
 
 ## Stack
@@ -142,6 +149,7 @@ docker-compose up --build
   PORT=5000
   MONGODB_URI=mongodb://localhost:27017/campus_lost_found
   FLASK_SERVICE_URL=http://localhost:5001
+  JWT_SECRET=your-jwt-secret-key-change-in-production
   ```
 - **`frontend/.env.example`:**
   ```env
@@ -192,24 +200,32 @@ Carried forward from `prd.md > Look and Feel`.
 ### Frontend Components (`frontend/src/`)
 Implements `prd.md > Screens and Layout`.
 
-- `Navbar.jsx`: Implements `prd.md > 1. Main Feed`. Displays branding and dual action buttons ("I lost something", "I found something").
+- `Navbar.jsx`: Implements `prd.md > 1. Main Feed`. Displays branding, dual action buttons ("I lost something", "I found something"), and auth state ("Login" or "My posts" + "Logout").
 - `FilterBar.jsx`: Implements `prd.md > Item Feed & Filtering`. Controls Type, Category, and Status pills.
 - `ItemCard.jsx`: Implements `prd.md > Cards Grid`. Renders thumbnail, badges, tags, truncated description, date, and location. Contact info is strictly excluded.
 - `FeedGrid.jsx`: Implements `prd.md > Empty State` and responsive grid layout (1 col mobile, 2-3 col desktop).
-- `ReportForm.jsx`: Implements `prd.md > 2. Report Item Page`. Handles photo select, preview, async call to `/api/detect`, manual-first dropdowns, validation, and submission.
-- `ItemDetail.jsx`: Implements `prd.md > 3. Item Detail & Match Page`. Displays full details, contact reveal trigger, "Mark as returned" modal, and the Top Matches panel.
+- `ReportForm.jsx`: Implements `prd.md > 2. Report Item Page`. Handles photo select, preview, async call to `/api/detect`, manual-first dropdowns, validation, and submission (requires authentication; redirects to login if unauthenticated).
+- `ItemDetail.jsx`: Implements `prd.md > 3. Item Detail & Match Page`. Displays full details, contact reveal trigger (requires auth and challenge modal if configured), "Mark as returned" button (visible only to the item owner), and the Top Matches panel.
 - `MatchCard.jsx`: Implements `prd.md > Explainable Top-3 Matching`. Displays match tier badge, score breakdown, applied reason chips, and links to candidate item.
+- `LoginPage.jsx`: Implements `prd.md > 4. Login Page`. Handles email/password authentication, returns JWT, persists to localStorage via AuthContext, and redirects.
+- `RegisterPage.jsx`: Implements `prd.md > 5. Register Page`. Form with email and password (min 8 chars) validation, creates account, logs in user.
+- `MyPostsPage.jsx`: Implements `prd.md > 6. My Posts Page`. Lists current user's items from `GET /api/items/mine`, with direct "Mark as returned" action for active posts.
+- `AuthContext.jsx`: Provides reactive authentication state (`user`, `token`, `login`, `register`, `logout`) with safe `localStorage` access wrapped in try/catch blocks.
 
 ### Backend Endpoints (`backend/src/routes/`)
 Implements `prd.md > Features and Behavior`.
 
+- `POST /api/auth/register`: Validates email (format) and password (length >= 8). Rate limited. Hashes password with bcrypt (10 rounds). Saves new `User`. Returns `{ token, user: { id, email } }`. Never returns passwordHash or logs passwords.
+- `POST /api/auth/login`: Rate limited. Validates credentials. Returns `{ token, user: { id, email } }` with 7-day JWT expiry. Never returns passwordHash or logs passwords.
+- `GET /api/auth/me`: Requires JWT auth header (`Bearer <token>`). Returns `{ user: { id, email } }`.
 - `POST /api/detect`: Implements `prd.md > Manual-First Reporting & AI Auto-Tagging`. Uses in-memory Multer storage (`multer.memoryStorage()`) with strict limits (images only, max 5 MB). Forwards file buffer to Flask `POST http://localhost:5001/detect` with a 3-second timeout. Returns `{ category, color }` without writing to disk.
-- `GET /api/items`: Implements `prd.md > Item Feed & Filtering`. Filters by `type`, `category`, `status`. Uses Mongoose `.select('-contact -privateAnswerHash -manageCodeHash')` to strictly omit sensitive fields.
-- `POST /api/items`: Implements `prd.md > 2. Report Item Page`. Disk Multer storage validates image (≤5MB, mimetype `image/*`), writes to `./uploads/`, generates one-time `manageCode` (`RET-XXXX`), stores SHA-256 `manageCodeHash`. For found items, optionally accepts `privateQuestion` and `privateAnswer` (stored as SHA-256 `privateAnswerHash`). Returns created item containing `manageCode` (one-time view), strictly omitting `contact`, `privateAnswerHash`, and `manageCodeHash`.
-- `GET /api/items/:id`: Returns single item details, strictly omitting `contact`, `privateAnswerHash`, and `manageCodeHash`. Includes `privateQuestion` if configured.
+- `GET /api/items`: Implements `prd.md > Item Feed & Filtering`. Filters by `type`, `category`, `status`. Uses Mongoose `.select('-contact -privateAnswerHash')` to strictly omit sensitive fields. Populates owner public info (`email`).
+- `POST /api/items`: Requires JWT auth header (`Bearer <token>`). Multer storage validates image (≤5MB, mimetype `image/*`), writes to `./uploads/`, assigns `owner = req.user._id`. For found items, optionally accepts `privateQuestion` and `privateAnswer` (stored as SHA-256 `privateAnswerHash`). Returns created item, strictly omitting `contact` and `privateAnswerHash`.
+- `GET /api/items/mine`: Requires JWT auth header. Queries items where `owner = req.user._id`, ordered newest first. Strictly excludes `contact` and `privateAnswerHash`.
+- `GET /api/items/:id`: Returns single item details, strictly omitting `contact` and `privateAnswerHash`. Includes `privateQuestion` if configured. Includes `owner` (`_id`, `email`).
 - `GET /api/items/:id/matches`: Implements `prd.md > Explainable Top-3 Matching`. Queries opposite-side active items, runs scoring algorithm, returns top 3 items meeting qualification rule and score ≥ 25.
-- `POST /api/items/:id/reveal-contact`: Implements `prd.md > Privacy-Preserving Contact & Resolution`. If item has a `privateQuestion`, requires `{ answer }` in request body. Validates trimmed lowercased SHA-256 hash. Allows max 3 failed attempts before a 5-minute lockout (HTTP 429). On success (or if no private question), returns `{ contact: item.contact }`.
-- `PATCH /api/items/:id/return`: Implements `prd.md > Privacy-Preserving Contact & Resolution`. Requires `{ manageCode }` in request body. Validates against stored `manageCodeHash`. Rejects missing (400) or incorrect (403) code. Sets `status: 'returned'`.
+- `POST /api/items/:id/reveal-contact`: Requires JWT auth header. If item has a `privateQuestion`, requires `{ answer }` in request body. Validates trimmed lowercased SHA-256 hash. Allows max 3 failed attempts before a 5-minute lockout (HTTP 429). On success (or if no private question), returns `{ contact: item.contact }`.
+- `PATCH /api/items/:id/return`: Requires JWT auth header. Allowed ONLY if `item.owner.equals(req.user._id)`; returns HTTP 403 Forbidden otherwise. Sets `status: 'returned'`.
 
 ### Flask CV Microservice (`cv-service/`)
 - `POST /detect`: Accepts multipart file `image`. Runs YOLOv8 inference. If detected, extracts bounding box; otherwise uses center crop (middle 50% width/height). Converts crop to HSV and applies pixel classification. Returns JSON `{ category: string, color: string }`.
@@ -289,6 +305,24 @@ Backend unit test file `backend/tests/matcher.test.js` verifying:
 
 ## Data Model
 
+### MongoDB User Schema (`backend/src/models/User.js`)
+```javascript
+const userSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  passwordHash: {
+    type: String,
+    required: true,
+    select: false
+  }
+}, { timestamps: true });
+```
+
 ### MongoDB Item Schema (`backend/src/models/Item.js`)
 ```javascript
 const itemSchema = new mongoose.Schema({
@@ -310,23 +344,30 @@ const itemSchema = new mongoose.Schema({
   contact: { type: String, required: true }, // Strictly excluded from list and detail API responses
   currentLocation: { type: String, default: '' }, // For found items
   status: { type: String, enum: ['active', 'returned'], default: 'active' },
+  owner: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
   // Private ownership verification challenge (found items)
   privateQuestion: { type: String, default: '' },
   privateAnswerHash: { type: String, default: null, select: false },
   verificationAttempts: { type: Number, default: 0 },
-  lockoutUntil: { type: Date, default: null },
-  // Item resolution authorization
-  manageCodeHash: { type: String, default: null, select: false }
+  lockoutUntil: { type: Date, default: null }
 }, { timestamps: true });
 ```
 
 ### Seed Data Specification (`backend/src/seeds/seed.js`)
-Pre-populates 5 items with small real sample images:
-1. **Found Blue Backpack:** (`found`, `bag`, `blue`, description: *"Waterproof nylon backpack with black zip and padded straps"*, location: *"Library 2nd floor desk"*, `active`)
-2. **Lost Black Water Bottle:** (`lost`, `bottle`, `black`, description: *"Stainless steel insulated flask with sports cap"*, location: *"Canteen sports ground"*, `active`)
-3. **Lost Grey Phone:** (`lost`, `phone`, `grey`, description: *"Grey case with cracked screen protector"*, location: *"CS Block Lab 3"*, `active`)
-4. **Found Red Umbrella:** (`found`, `umbrella`, `red`, description: *"Compact folding umbrella with wooden handle"*, location: *"Main Gate security"*, `active`)
-5. **Returned Blue Bag:** (`lost`, `bag`, `blue`, description: *"Small blue canvas tote bag"*, location: *"Auditorium foyer"*, `returned`)
+Creates two demo user accounts:
+- `alice@campus.edu` (demo password documented in README: `demopassword123`)
+- `bob@campus.edu` (demo password documented in README: `demopassword123`)
+
+Pre-populates 5 items associated with these demo owners:
+1. **Found Blue Backpack:** (`found`, `bag`, `blue`, description: *"Waterproof nylon backpack with black zip and padded straps"*, location: *"Library 2nd floor desk"*, owner: Alice, `active`)
+2. **Lost Black Water Bottle:** (`lost`, `bottle`, `black`, description: *"Stainless steel insulated flask with sports cap"*, location: *"Canteen sports ground"*, owner: Bob, `active`)
+3. **Lost Grey Phone:** (`lost`, `phone`, `grey`, description: *"Grey case with cracked screen protector"*, location: *"CS Block Lab 3"*, owner: Alice, `active`)
+4. **Found Red Umbrella:** (`found`, `umbrella`, `red`, description: *"Compact folding umbrella with wooden handle"*, location: *"Main Gate security"*, owner: Bob, `active`)
+5. **Returned Blue Bag:** (`lost`, `bag`, `blue`, description: *"Small blue canvas tote bag"*, location: *"Auditorium foyer"*, owner: Alice, `returned`)
 
 *Demo Keyword Pair:* The seeded Found Blue Backpack and the newly posted Lost Backpack share two explicit non-stopword keywords: `"zip"` and `"straps"`, guaranteeing an exact demonstrable reason chip (`"2 shared keywords: zip, straps"`).
 
@@ -337,18 +378,24 @@ campus-lost-found/
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── db.js                 # MongoDB connection
+│   │   ├── middleware/
+│   │   │   └── auth.js               # JWT auth verification middleware
 │   │   ├── models/
-│   │   │   └── Item.js               # Mongoose schema
+│   │   │   ├── Item.js               # Mongoose Item schema (with owner ref)
+│   │   │   └── User.js               # Mongoose User schema (email, passwordHash)
 │   │   ├── routes/
+│   │   │   ├── auth.js               # POST /register, POST /login, GET /me
 │   │   │   ├── detect.js             # Express proxy to Flask (POST /api/detect)
-│   │   │   └── items.js              # CRUD, matches, contact reveal, return
+│   │   │   └── items.js              # CRUD, matches, contact reveal, return, mine
 │   │   ├── services/
 │   │   │   └── matcher.js            # Deterministic scoring & reason generation
 │   │   ├── seeds/
-│   │   │   └── seed.js               # 5-item seed script with real sample images
+│   │   │   └── seed.js               # 2-user, 5-item seed script with real sample images
 │   │   └── index.js                  # Express app entry & static /uploads serving
 │   ├── tests/
-│   │   └── matcher.test.js           # Scoring engine unit tests
+│   │   ├── matcher.test.js           # Scoring engine unit tests
+│   │   ├── items.test.js             # Items API & contact reveal tests
+│   │   └── auth.test.js              # User auth, registration, login & ownership tests
 │   ├── uploads/                      # Local uploaded image files
 │   ├── package.json
 │   └── .env.example
@@ -361,7 +408,37 @@ campus-lost-found/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.jsx            # Header & post buttons
+│   │   │   ├── Navbar.jsx            # Header & post buttons + auth controls
+│   │   │   ├── FilterBar.jsx         # Type, Category, Status pill controls
+│   │   │   ├── ItemCard.jsx          # Feed card
+│   │   │   ├── FeedGrid.jsx          # Responsive card grid & empty state
+│   │   │   ├── MatchCard.jsx         # Candidate card with reason chips
+│   │   │   └── Modal.jsx             # Accessible popup modal
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx       # Auth provider, token & user state
+│   │   ├── pages/
+│   │   │   ├── FeedPage.jsx          # Main feed & search
+│   │   │   ├── ReportPage.jsx        # Reporting with CV auto-tagging
+│   │   │   ├── DetailPage.jsx        # Item detail & top matches
+│   │   │   ├── LoginPage.jsx         # User login form
+│   │   │   ├── RegisterPage.jsx      # User registration form
+│   │   │   └── MyPostsPage.jsx       # Current user's reported items
+│   │   ├── services/
+│   │   │   └── api.js                # Axios client with Auth header injection
+│   │   ├── App.jsx                   # Router & routes
+│   │   ├── main.jsx                  # React DOM root
+│   │   └── index.css                 # Tailwind directives
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── docker-compose.yml
+├── README.md
+└── devpost/
+    ├── scope.md
+    ├── prd.md
+    ├── spec.md
+    └── checklist.md
+```
 │   │   │   ├── FilterBar.jsx         # Type/category/status filters
 │   │   │   ├── ItemCard.jsx          # Feed item card
 │   │   │   ├── MatchCard.jsx         # Item detail match card with chips
