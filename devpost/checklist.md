@@ -119,7 +119,7 @@ Activity mode: Live app and editor, paired with standalone `devpost/app-map.html
   Verify (mechanical): Unit/integration tests in `backend/tests/auth.test.js` testing register, duplicate email rejection, login success/wrong password, token rejection on protected routes, owner can mark returned, non-owner gets 403, reveal-contact requires login, and passwordHash/answer hash never returned.
   Commit: `feat(auth): implement user model, jwt auth, route protection, and item ownership`
 
-- [ ] **Slice B (Frontend): Auth Context, Login/Register Pages, Navbar Auth, and My Posts**
+- [x] **Slice B (Frontend): Auth Context, Login/Register Pages, Navbar Auth, and My Posts**
   Becomes usable:
     1. Token storage in `localStorage` wrapped in safe `try/catch`.
     2. React `AuthContext` providing user state, login, register, and logout.

@@ -5,11 +5,15 @@ import FeedPage from './pages/FeedPage';
 import ReportPage from './pages/ReportPage';
 import DetailPage from './pages/DetailPage';
 import AboutPage from './pages/AboutPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import MyPostsPage from './pages/MyPostsPage';
 
 export default function App() {
-  const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail' | 'about'
+  const [view, setView] = useState('feed'); // 'feed' | 'report' | 'detail' | 'about' | 'login' | 'register' | 'my-posts'
   const [reportType, setReportType] = useState('lost');
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [redirectUrl, setRedirectUrl] = useState(null);
 
   // Sync with browser history and hash navigation
   useEffect(() => {
@@ -23,6 +27,16 @@ export default function App() {
         const params = new URLSearchParams(hash.split('?')[1]);
         setReportType(params.get('type') || 'lost');
         setView('report');
+      } else if (hash.startsWith('#/login')) {
+        const params = new URLSearchParams(hash.split('?')[1]);
+        setRedirectUrl(params.get('redirect') || null);
+        setView('login');
+      } else if (hash.startsWith('#/register')) {
+        const params = new URLSearchParams(hash.split('?')[1]);
+        setRedirectUrl(params.get('redirect') || null);
+        setView('register');
+      } else if (hash.startsWith('#/my-posts')) {
+        setView('my-posts');
       } else if (hash.startsWith('#/about')) {
         setView('about');
       } else {
@@ -52,6 +66,19 @@ export default function App() {
     } else if (newView === 'about') {
       window.location.hash = '#/about';
       setView('about');
+    } else if (newView === 'login') {
+      const red = params.redirect ? `?redirect=${encodeURIComponent(params.redirect)}` : '';
+      window.location.hash = `#/login${red}`;
+      setRedirectUrl(params.redirect || null);
+      setView('login');
+    } else if (newView === 'register') {
+      const red = params.redirect ? `?redirect=${encodeURIComponent(params.redirect)}` : '';
+      window.location.hash = `#/register${red}`;
+      setRedirectUrl(params.redirect || null);
+      setView('register');
+    } else if (newView === 'my-posts') {
+      window.location.hash = '#/my-posts';
+      setView('my-posts');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -73,6 +100,7 @@ export default function App() {
             initialType={reportType} 
             onBack={() => navigateTo('feed')}
             onSuccess={(id) => navigateTo('detail', { id })}
+            onNavigate={navigateTo}
           />
         )}
 
@@ -81,11 +109,33 @@ export default function App() {
             itemId={selectedItemId} 
             onBack={() => navigateTo('feed')}
             onSelectMatch={(id) => navigateTo('detail', { id })}
+            onNavigate={navigateTo}
           />
         )}
 
         {view === 'about' && (
           <AboutPage onBack={() => navigateTo('feed')} />
+        )}
+
+        {view === 'login' && (
+          <LoginPage 
+            onNavigate={navigateTo} 
+            redirectUrl={redirectUrl} 
+          />
+        )}
+
+        {view === 'register' && (
+          <RegisterPage 
+            onNavigate={navigateTo} 
+            redirectUrl={redirectUrl} 
+          />
+        )}
+
+        {view === 'my-posts' && (
+          <MyPostsPage 
+            onSelectItem={(id) => navigateTo('detail', { id })} 
+            onNavigate={navigateTo} 
+          />
         )}
       </div>
 

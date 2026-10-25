@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, MapPin, Calendar, Check, Phone, Copy, 
   Sparkles, AlertCircle, Loader2, ShieldCheck, ArrowRight, Package,
-  Lock, KeyRound, X
+  Lock, CheckCircle2, X, LogIn
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import MatchCard from '../components/MatchCard';
 
-export default function DetailPage({ itemId, onBack, onSelectMatch }) {
+export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }) {
+  const { user } = useAuth();
   const [item, setItem] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +26,8 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
   const [challengeError, setChallengeError] = useState(null);
   const [submittingChallenge, setSubmittingChallenge] = useState(false);
 
-  // Return modal state (requires manage code)
+  // Return modal state (for item owner)
   const [showReturnModal, setShowReturnModal] = useState(false);
-  const [returnCode, setReturnCode] = useState('');
   const [returnError, setReturnError] = useState(null);
   const [markingReturned, setMarkingReturned] = useState(false);
 
@@ -55,6 +56,14 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
   }, [itemId]);
 
   const handleContactClick = () => {
+    if (!user) {
+      if (onNavigate) {
+        onNavigate('login', { redirect: `#/items/${itemId}` });
+      } else {
+        window.location.hash = `#/login?redirect=%23%2Fitems%2F${itemId}`;
+      }
+      return;
+    }
     if (item?.privateQuestion) {
       setChallengeAnswer('');
       setChallengeError(null);
@@ -70,7 +79,7 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
       const data = await api.revealContact(itemId);
       setRevealedContact(data.contact);
     } catch (err) {
-      alert('Unable to retrieve contact details: ' + (err.response?.data?.message || err.message));
+      alert('Unable to retrieve contact details: ' + (err.response?.data?.message || err.response?.data?.error || err.message));
     } finally {
       setRevealing(false);
     }
@@ -106,20 +115,14 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
 
   const handleConfirmReturn = async (e) => {
     e.preventDefault();
-    if (!returnCode.trim()) {
-      setReturnError('Please enter your one-time manage code.');
-      return;
-    }
-
     setMarkingReturned(true);
     setReturnError(null);
     try {
-      const res = await api.markReturned(itemId, returnCode.trim());
+      const res = await api.markReturned(itemId);
       setItem(res.item);
       setShowReturnModal(false);
-      setReturnCode('');
     } catch (err) {
-      setReturnError(err.response?.data?.error || err.response?.data?.message || 'Invalid manage code. Please check the code provided when the item was reported.');
+      setReturnError(err.response?.data?.error || err.response?.data?.message || 'Failed to mark item returned.');
     } finally {
       setMarkingReturned(false);
     }
@@ -154,6 +157,9 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
 
   const isLost = item.type === 'lost';
   const isReturned = item.status === 'returned';
+  const ownerId = item.owner?._id || item.owner;
+  const currentUserId = user?.id || user?._id;
+  const isOwner = Boolean(user && ownerId && currentUserId && String(ownerId) === String(currentUserId));
   const formattedDate = new Date(item.date).toLocaleDateString('en-US', {
     month: 'short',
     day: '2-digit',
@@ -319,18 +325,19 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
                   </button>
                 )}
 
-                {/* Mark as Returned Button */}
-                <button
-                  onClick={() => {
-                    setReturnCode('');
-                    setReturnError(null);
-                    setShowReturnModal(true);
-                  }}
-                  className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
-                >
-                  <ShieldCheck size={15} className="text-slate-500" />
-                  <span>Mark as returned</span>
-                </button>
+                {/* Mark as Returned Button (Shown only to the owner) */}
+                {isOwner && (
+                  <button
+                    onClick={() => {
+                      setReturnError(null);
+                      setShowReturnModal(true);
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    <ShieldCheck size={15} className="text-slate-500" />
+                    <span>Mark as returned</span>
+                  </button>
+                )}
 
               </div>
             )}
@@ -461,14 +468,14 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
         </div>
       )}
 
-      {/* Return Resolution Modal (Requires Manage Code) */}
+      {/* Return Resolution Modal (Owner Only) */}
       {showReturnModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-fadeIn">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <KeyRound size={18} />
+                  <CheckCircle2 size={18} />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Mark as Returned</h3>
               </div>
@@ -481,50 +488,35 @@ export default function DetailPage({ itemId, onBack, onSelectMatch }) {
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-              Enter the one-time <strong>Manage Code</strong> you received when reporting this item to confirm its return:
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Are you sure this item has been returned? Once confirmed, this item will be marked as returned and removed from the active campus feed and matches.
             </p>
 
-            <form onSubmit={handleConfirmReturn} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Manage Code
-                </label>
-                <input
-                  type="text"
-                  value={returnCode}
-                  onChange={(e) => setReturnCode(e.target.value)}
-                  placeholder="e.g. RET-A1B2C3"
-                  autoFocus
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono uppercase text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-brand/20 focus:border-primary-brand transition-all tracking-wider"
-                />
+            {returnError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
+                <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <span>{returnError}</span>
               </div>
+            )}
 
-              {returnError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
-                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>{returnError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowReturnModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={markingReturned}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5"
-                >
-                  {markingReturned && <Loader2 size={14} className="animate-spin" />}
-                  <span>Confirm Return</span>
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowReturnModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReturn}
+                disabled={markingReturned}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-60 flex items-center gap-1.5"
+              >
+                {markingReturned && <Loader2 size={14} className="animate-spin" />}
+                <span>Confirm Return</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

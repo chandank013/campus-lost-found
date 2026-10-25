@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
   ChevronLeft, Camera, X, Check, Loader2, MapPin, Calendar, 
-  Phone, AlertCircle, ShoppingBag, Droplet, Lock, Copy
+  Phone, AlertCircle, ShoppingBag, Droplet, Lock, LogIn
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = [
   { id: 'bag', label: 'Bag / Backpack' },
@@ -34,7 +35,8 @@ const CUSTODY_OPTIONS = [
   'Other'
 ];
 
-export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) {
+export default function ReportPage({ initialType = 'lost', onBack, onSuccess, onNavigate }) {
+  const { user } = useAuth();
   const [type, setType] = useState(initialType);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -56,11 +58,6 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-
-  // Manage Code Modal State
-  const [createdManageCode, setCreatedManageCode] = useState(null);
-  const [createdItemId, setCreatedItemId] = useState(null);
-  const [codeCopied, setCodeCopied] = useState(false);
 
   const isLost = type === 'lost';
 
@@ -150,12 +147,7 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
       formData.append('image', photoFile);
 
       const created = await api.createItem(formData);
-      if (created.manageCode) {
-        setCreatedManageCode(created.manageCode);
-        setCreatedItemId(created._id);
-      } else {
-        onSuccess(created._id);
-      }
+      onSuccess(created._id);
     } catch (err) {
       setErrors((prev) => ({
         ...prev,
@@ -165,6 +157,34 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
       setSubmitting(false);
     }
   };
+
+  if (!user) {
+    return (
+      <main className="max-w-md mx-auto px-4 py-16 text-center">
+        <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-primary-brand/10 text-primary-brand flex items-center justify-center mx-auto mb-4">
+            <LogIn size={26} />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Login Required</h2>
+          <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+            Please log in or create an account to report lost or found items and manage returns.
+          </p>
+          <button
+            onClick={() => onNavigate('login', { redirect: `#/report?type=${type}` })}
+            className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-xs hover:bg-primary-hover transition-colors"
+          >
+            Log In / Register
+          </button>
+          <button
+            onClick={onBack}
+            className="w-full mt-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            Back to feed
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   const selectedColorHex = COLORS.find((c) => c.id === color)?.hex || '#cbd5e1';
 
@@ -532,62 +552,6 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess }) 
         </form>
 
       </div>
-
-      {/* One-Time Manage Code Modal */}
-      {createdManageCode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center animate-fadeIn">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-              <Check size={26} strokeWidth={2.5} />
-            </div>
-            <h3 className="text-xl font-black text-slate-900 mb-1">Report Published!</h3>
-            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-              Your item is now live and scanning for campus matches. Below is your unique item manage code.
-            </p>
-
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-4">
-              <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                One-Time Manage Code
-              </span>
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl font-black tracking-widest text-primary font-mono select-all">
-                  {createdManageCode}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(createdManageCode);
-                    setCodeCopied(true);
-                    setTimeout(() => setCodeCopied(false), 2000);
-                  }}
-                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors shadow-2xs"
-                  title="Copy code"
-                >
-                  {codeCopied ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
-                </button>
-              </div>
-              {codeCopied && (
-                <span className="block text-[11px] font-bold text-emerald-600 mt-1">Copied to clipboard!</span>
-              )}
-            </div>
-
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left text-xs text-amber-900 leading-relaxed mb-6 flex items-start gap-2">
-              <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
-              <span>
-                <strong>Save this code!</strong> You will need this code to mark this item as returned once resolved. It cannot be recovered later.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onSuccess(createdItemId)}
-              className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-sm shadow-sm transition-all"
-            >
-              View Item &amp; Matches &rarr;
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
