@@ -17,28 +17,28 @@ export default function Footer({ onNavigate }) {
 
   return (
     <footer className="mt-auto bg-white border-t border-slate-200/80 text-xs text-slate-500 font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         
         {/* Main Footer Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-5">
           
           {/* Column 1: Brand Section (5 cols) */}
           <div className="md:col-span-5 flex flex-col items-start pr-0 md:pr-6">
             <div 
               onClick={() => onNavigate('feed')}
-              className="flex items-center gap-2.5 cursor-pointer group mb-3 select-none"
+              className="flex items-center gap-2 cursor-pointer group mb-1.5 select-none"
             >
-              <div className="w-8 h-8 rounded-lg bg-primary-brand/10 text-primary-brand flex items-center justify-center transition-transform group-hover:scale-105">
-                <GraduationCap size={20} className="text-primary-brand" />
+              <div className="w-7 h-7 rounded-lg bg-primary-brand/10 text-primary-brand flex items-center justify-center transition-transform group-hover:scale-105">
+                <GraduationCap size={18} className="text-primary-brand" />
               </div>
-              <span className="text-base font-black text-slate-900 tracking-tight">
+              <span className="text-sm font-black text-slate-900 tracking-tight">
                 Campus <span className="text-primary-brand">Lost &amp; Found</span>
               </span>
             </div>
-            <p className="text-slate-500 text-xs leading-relaxed max-w-sm mb-4">
+            <p className="text-slate-500 text-xs leading-relaxed max-w-sm mb-2.5">
               A university community platform helping students and faculty quickly report, discover, and reconnect with missing belongings on campus.
             </p>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               <span>Campus Recovery Network</span>
             </div>
@@ -46,10 +46,10 @@ export default function Footer({ onNavigate }) {
 
           {/* Column 2: Navigation Section (3 cols) */}
           <div className="md:col-span-3">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+            <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-2">
               Navigation
             </h3>
-            <ul className="space-y-2.5">
+            <ul className="space-y-1.5">
               <li>
                 <button
                   type="button"
@@ -74,7 +74,7 @@ export default function Footer({ onNavigate }) {
                   className="text-slate-600 hover:text-primary-brand transition-colors inline-flex items-center gap-1 cursor-pointer"
                 >
                   <span>Contact Support</span>
-                  <ArrowUpRight size={12} className="text-slate-400" />
+                  <ArrowUpRight size={11} className="text-slate-400" />
                 </a>
               </li>
             </ul>
@@ -82,13 +82,13 @@ export default function Footer({ onNavigate }) {
 
           {/* Column 3: Community & Reporting Section (4 cols) */}
           <div className="md:col-span-4">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+            <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-2">
               Community
             </h3>
-            <p className="text-slate-500 text-xs leading-relaxed mb-3">
+            <p className="text-slate-500 text-xs leading-relaxed mb-2">
               Found property on campus or missing an item? Submit a report to alert fellow students.
             </p>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               <li>
                 <button
                   type="button"
@@ -113,7 +113,7 @@ export default function Footer({ onNavigate }) {
         </div>
 
         {/* Bottom Section */}
-        <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400 text-[11px]">
+        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-slate-400 text-[11px]">
           <p>
             &copy; {currentYear} Campus Lost &amp; Found. All rights reserved.
           </p>

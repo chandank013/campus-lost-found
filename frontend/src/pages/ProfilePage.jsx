@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function ProfilePage({ onSelectItem, onNavigate }) {
   const { user } = useAuth();
+  const { fetchNotifications } = useNotifications();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,6 +46,9 @@ export default function ProfilePage({ onSelectItem, onNavigate }) {
       setItems((prev) =>
         prev.map((item) => (item._id === id ? { ...item, status: 'returned' } : item))
       );
+      try {
+        await fetchNotifications();
+      } catch {}
     } catch (err) {
       alert(err.response?.data?.error || err.message || 'Failed to mark item returned.');
     } finally {

@@ -1,13 +1,33 @@
-import React, { useState } from 'react';
-import { LogIn, AlertCircle, Loader2, Mail, Lock, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, AlertCircle, CheckCircle2, Loader2, Mail, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function LoginPage({ onNavigate, redirectUrl = null }) {
+export default function LoginPage({ onNavigate, redirectUrl = null, initialEmail = '', successMessage = null }) {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(successMessage);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Check URL parameters for registration confirmation & prefilled email
+    try {
+      const hash = window.location.hash || '';
+      if (hash.includes('?')) {
+        const params = new URLSearchParams(hash.split('?')[1]);
+        if (params.get('registered') === 'true') {
+          setInfoMessage('Account registered successfully! Please log in with your email and password to continue.');
+        }
+        if (params.get('email')) {
+          setEmail(params.get('email'));
+        }
+      }
+    } catch {}
+
+    if (initialEmail) setEmail(initialEmail);
+    if (successMessage) setInfoMessage(successMessage);
+  }, [initialEmail, successMessage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,7 +68,7 @@ export default function LoginPage({ onNavigate, redirectUrl = null }) {
         {/* Header */}
         <div className="text-center pb-6 mb-6 border-b border-slate-100">
           <div className="w-12 h-12 rounded-2xl bg-primary-brand/10 text-primary-brand flex items-center justify-center mx-auto mb-3 shadow-xs">
-            <LogIn size={26} />
+            <GraduationCap size={26} />
           </div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight">
             Log in to Campus Lost &amp; Found
@@ -57,6 +77,14 @@ export default function LoginPage({ onNavigate, redirectUrl = null }) {
             Access your posted items, contact finders, and manage returns
           </p>
         </div>
+
+        {/* Registration Success notice */}
+        {infoMessage && (
+          <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-800">
+            <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+            <span className="font-bold leading-relaxed">{infoMessage}</span>
+          </div>
+        )}
 
         {/* Error message banner */}
         {error && (

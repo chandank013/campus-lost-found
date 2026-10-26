@@ -8,7 +8,7 @@ const itemSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['bag', 'phone', 'bottle', 'umbrella', 'laptop', 'book', 'other'],
+    enum: ['bag', 'phone', 'bottle', 'umbrella', 'laptop', 'book', 'earbuds', 'airphone', 'hearphone', 'headphone', 'earphone', 'other'],
     required: [true, 'Category is required']
   },
   color: {

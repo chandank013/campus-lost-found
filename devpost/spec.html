@@ -226,45 +226,60 @@
           <thead>
             <tr>
               <th>Method & Endpoint</th>
-              <th>Payload / Params</th>
+              <th>Auth & Payload</th>
               <th>Response & Behavior</th>
             </tr>
           </thead>
           <tbody>
             <tr>
+              <td><code>POST /api/auth/register</code></td>
+              <td>Public: <code>{ email, password }</code></td>
+              <td>Validates email and 8+ char password; hashes with bcrypt (10 rounds); returns <code>{ token, user }</code>.</td>
+            </tr>
+            <tr>
+              <td><code>POST /api/auth/login</code></td>
+              <td>Public: <code>{ email, password }</code></td>
+              <td>Rate limited; validates credentials; returns <code>{ token, user }</code> with 7-day JWT expiry.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/auth/me</code></td>
+              <td>Bearer JWT</td>
+              <td>Returns authenticated profile <code>{ user: { id, email } }</code> for session verification.</td>
+            </tr>
+            <tr>
               <td><code>POST /api/detect</code></td>
-              <td>Multipart file <code>image</code> (in-memory, ≤5MB)</td>
-              <td>Proxies in-memory to Flask (3s timeout); returns <code>{ category, color }</code> without disk write.</td>
+              <td>Multipart <code>image</code> (in-memory)</td>
+              <td>Proxies in-memory buffer to Flask (3s timeout); returns <code>{ category, color }</code> without disk write.</td>
             </tr>
             <tr>
               <td><code>GET /api/items</code></td>
-              <td><code>?type=&category=&status=</code></td>
-              <td>Returns item array; <code>contact</code> is strictly excluded.</td>
+              <td>Public query filters</td>
+              <td>Returns feed items; <code>contact</code> and <code>privateAnswerHash</code> strictly excluded.</td>
             </tr>
             <tr>
               <td><code>POST /api/items</code></td>
-              <td>Multipart image + form fields</td>
-              <td>Validates image (≤5MB), saves to <code>./uploads</code>, creates MongoDB document.</td>
-            </tr>
-            <tr>
-              <td><code>GET /api/items/:id</code></td>
-              <td>None</td>
-              <td>Returns single item details; <code>contact</code> is strictly excluded.</td>
+              <td>Bearer JWT + multipart</td>
+              <td>Saves image to <code>./uploads</code>, creates item owned by user. Emits public broadcast before login; generates targeted matches for qualifying candidates.</td>
             </tr>
             <tr>
               <td><code>GET /api/items/:id/matches</code></td>
-              <td>None</td>
-              <td>Computes heuristic score on opposite active items; returns top 3 meeting PRD rule & score ≥25.</td>
+              <td>Public</td>
+              <td>Deterministic 100pt algorithm on opposite active items; returns top 3 meeting PRD rule & score ≥25 with reason chips.</td>
             </tr>
             <tr>
               <td><code>POST /api/items/:id/reveal-contact</code></td>
-              <td>None</td>
-              <td>Returns <code>{ contact: item.contact }</code>.</td>
+              <td>Bearer JWT (+ answer if challenge set)</td>
+              <td>Validates ownership challenge (3 attempts max before 5m lockout); returns <code>{ contact }</code>.</td>
             </tr>
             <tr>
               <td><code>PATCH /api/items/:id/return</code></td>
-              <td>None</td>
-              <td>Updates <code>status: 'returned'</code>, removing item from active matching.</td>
+              <td>Bearer JWT (Owner only)</td>
+              <td>403 for non-owners. Marks item returned, marks notifications resolved, automatically decrementing active notification counts.</td>
+            </tr>
+            <tr>
+              <td><code>GET /api/notifications</code></td>
+              <td>Optional JWT</td>
+              <td>Logged-in: returns only user's reports & matches. Guest: returns campus uploads. Unread count represents active unreturned items.</td>
             </tr>
           </tbody>
         </table>
@@ -276,33 +291,62 @@
 campus-lost-found/
 ├── backend/
 │   ├── src/
-│   │   ├── config/db.js          # MongoDB connection
-│   │   ├── models/Item.js        # Mongoose schema
-│   │   ├── routes/
-│   │   │   ├── detect.js         # Proxy POST /api/detect
-│   │   │   └── items.js          # CRUD, matches, contact reveal
-│   │   ├── services/matcher.js   # Scoring engine & reasons
-│   │   ├── seeds/seed.js         # 5-item seed script
-│   │   └── index.js              # Express app & static uploads
-│   ├── tests/matcher.test.js     # Scoring unit tests
-│   ├── uploads/                  # Local image storage
+│   │   ├── config/db.js              # MongoDB connection
+│   │   ├── config/jwt.js             # Fail-fast JWT secret configuration
+│   │   ├── middleware/auth.js        # JWT auth verification middleware
+│   │   ├── models/Item.js            # Mongoose Item schema (categories, owner ref)
+│   │   ├── models/Notification.js    # Mongoose Notification schema (broadcast & match)
+│   │   ├── models/User.js            # Mongoose User schema (email, passwordHash)
+│   │   ├── routes/auth.js            # POST /register, POST /login, GET /me
+│   │   ├── routes/detect.js          # In-memory proxy POST /api/detect
+│   │   ├── routes/items.js           # CRUD, matches, contact reveal, return, mine
+│   │   ├── routes/notifications.js   # Notification queries & count calculation
+│   │   ├── services/matcher.js       # Deterministic scoring & reason generation
+│   │   ├── seeds/seed.js             # 2 demo users, 9 items & notifications
+│   │   └── index.js                  # Express app & static /uploads serving
+│   ├── tests/
+│   │   ├── api.test.js               # API lifecycle & contact privacy tests
+│   │   ├── auth.test.js              # Auth, ownership & route protection tests
+│   │   ├── matcher.test.js           # Scoring engine unit tests
+│   │   └── notifications.test.js     # Campus broadcast, match alerts & return sync tests
+│   ├── uploads/                      # Committed sample images & uploads
 │   ├── .env.example
 │   └── package.json
 ├── cv-service/
-│   ├── app.py                    # Flask server (:5001)
-│   ├── detector.py               # YOLOv8 category inference
-│   ├── color.py                  # OpenCV HSV extraction
-│   └── requirements.txt
+│   ├── app.py                        # Flask server (:5001)
+│   ├── detector.py                   # YOLOv8 category inference
+│   ├── color.py                      # OpenCV HSV color extraction & mapping
+│   ├── requirements.txt
+│   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── components/           # Navbar, FilterBar, ItemCard, MatchCard
-│   │   ├── pages/                # FeedPage, ReportPage, DetailPage
-│   │   ├── services/api.ts       # Axios client
-│   │   └── App.tsx               # Routes
-│   ├── .env.example
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx            # Header, brand, links, avatar & drawer
+│   │   │   ├── NotificationDropdown.jsx # Bell dropdown with active badges
+│   │   │   ├── Footer.jsx            # Persistent footer with navigation
+│   │   │   ├── RouteGuards.jsx       # GuestRoute, ProtectedRoute, LoadingSpinner
+│   │   │   ├── FilterBar.jsx         # Type, Category, Status pill controls
+│   │   │   ├── ItemCard.jsx          # Feed card
+│   │   │   ├── FeedGrid.jsx          # Responsive card grid & empty state
+│   │   │   ├── MatchCard.jsx         # Candidate card with reason chips
+│   │   │   └── Modal.jsx             # Accessible popup modal
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx       # Auth provider, token & user state
+│   │   │   └── NotificationContext.jsx # Notification state & unread count
+│   │   ├── pages/
+│   │   │   ├── FeedPage.jsx          # Main feed & search
+│   │   │   ├── ReportPage.jsx        # Reporting with CV auto-tagging
+│   │   │   ├── DetailPage.jsx        # Redesigned item detail & matches panel
+│   │   │   ├── ProfilePage.jsx       # User profile & my reported items
+│   │   │   ├── AboutPage.jsx         # App overview & explainable AI guide
+│   │   │   ├── LoginPage.jsx         # User login form
+│   │   │   └── RegisterPage.jsx      # User registration form (with redirect)
+│   │   ├── services/api.js           # Axios client with Auth header injection
+│   │   ├── App.jsx                   # Hash router, route definitions & guards
+│   │   └── main.jsx                  # React DOM root
 │   ├── package.json
-│   └── vite.config.ts
-├── devpost/                      # Learning artifacts (scope, prd, spec)
+│   └── vite.config.js
+├── devpost/                          # Learning artifacts & companion guides
 ├── docker-compose.yml
 ├── .gitignore
 └── README.md</pre>

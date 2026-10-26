@@ -14,10 +14,12 @@ Campus Lost & Found allows students and campus staff to report lost or found bel
 
 ## Features
 
-- **User Accounts & Authentication:** Secure email/password registration and login with bcrypt password hashing (10 salt rounds), rate-limited authentication endpoints, and 7-day JWT tokens.
+- **User Accounts & Authentication:** Secure email/password registration and login with bcrypt password hashing (10 salt rounds), rate-limited authentication endpoints, and 7-day JWT tokens. Submitting registration seamlessly redirects to login with the registered email pre-filled.
+- **Interactive Navbar Notification Center:** Dual delivery pipeline: public campus upload announcements for visitors on the main dashboard before login, and targeted private candidate match alerts delivered exclusively to the owner and founder after login.
+- **Resolution-Bound Notification Count Decrement:** The notification counter badge represents active unrecovered property and decrements **only** when an item owner marks the item as returned via `Mark as returned`, automatically resolving notifications across both guest and user views.
 - **User Profile & Post Management:** Items are linked directly to registered users. The "My Profile" dashboard (`#/profile`) displays account stats (total reports, active listings, returned count), tab filters (All/Active/Returned), and owner resolution controls.
 - **Owner-Only Return Authorization:** Replacing fragile paper manage codes, marking an item returned (`PATCH /api/items/:id/return`) is strictly restricted to the authenticated item owner (non-owners receive HTTP 403 Forbidden).
-- **AI Photo Auto-Tagging:** Instant client-side preview; Express in-memory proxy forwards the photo to a Flask microservice running YOLOv8 nano and OpenCV HSV color extraction to suggest category and color tags.
+- **AI Photo Auto-Tagging:** Instant client-side preview; Express in-memory proxy forwards the photo to a Flask microservice running YOLOv8 nano and OpenCV HSV color extraction to suggest category and color tags. Supports standard campus items and audio gear (`headphone`, `earbuds`, `airphone`, `earphone`, `hearphone`).
 - **Manual-First Fallback:** Dropdowns remain 100% editable at all times. If the CV service is offline or times out, the application falls back gracefully with zero error banners or form blockers.
 - **Explainable Matching Engine:** Deterministic scoring algorithm surfaces top 3 opposite-side matches with clear reason chips (e.g., `"Same category"`, `"Same color"`, `"2 shared keywords: straps, zip"`, `"Same location area"`).
 - **Privacy-Preserving Contact Reveal:** Contact phone/email is strictly excluded from list and detail payloads (`.select('-contact -privateAnswerHash')`) and revealed only to authenticated users who click **"Contact the poster"**.
@@ -243,14 +245,15 @@ cd backend
 npm test
 ```
 
-**What is tested (35 automated tests across 3 test suites):**
+**What is tested (41 automated tests across 4 test suites):**
 - **Authentication & Registration (15 tests):** User creation, duplicate email rejection, email formatting and 8-character password enforcement, rate limiting, and 7-day JWT issuance.
 - **Login & Route Protection:** Valid credential login, invalid password rejection, and 401 Unauthorized enforcement across all protected endpoints.
 - **Item Ownership & Returns:** Items tied to authenticated owner; "My posts" endpoint (`/api/items/mine`); owner-authorized returns (200 OK) and non-owner return rejection (403 Forbidden).
 - **Contact Privacy & Verification Challenges (10 tests):** Contact strictly excluded from list/detail payloads; login required for contact reveal; private questions enforce 3-attempt limit and 5-minute lockout; verified answer reveals contact.
 - **Security Protections:** Assertions confirming neither `passwordHash` nor `privateAnswerHash` is ever exposed in any response.
 - **Matching Engine (7 tests):** Deterministic scoring factor calculations (Category, Color, Keywords, Location, Date), stopword filtering, and PRD qualification rule enforcement.
-- **Computer Vision Fallback (3 tests):** Express proxy fallback when Flask CV microservice is unreachable.
+- **Campus & Targeted Match Notifications (5 tests):** Public upload broadcasts to all users, targeted match alerts restricted strictly to the item founder and lost item poster, privacy isolation ensuring third-party students and guests never see private match alerts, and badge count decrement strictly on owner return.
+- **Computer Vision Fallback (4 tests):** Express proxy fallback when Flask CV microservice is unreachable.
 
 ---
 
@@ -269,7 +272,10 @@ npm test
 | `GET` | `/api/items/:id` | Get item details | Contact info and internal hashes strictly omitted |
 | `GET` | `/api/items/:id/matches` | Get top-3 scored candidates with chips | Excludes contact info and hashes |
 | `POST` | `/api/items/:id/reveal-contact` | Reveal contact details for an item | Requires `Bearer <token>`; requires `{ answer }` if private question set |
-| `PATCH` | `/api/items/:id/return` | Mark item as returned | Requires `Bearer <token>`; restricted to item owner (403 otherwise) |
+| `PATCH` | `/api/items/:id/return` | Mark item as returned | Requires `Bearer <token>`; restricted to item owner (403 otherwise); auto-resolves notifications |
+| `GET` | `/api/notifications` | Fetch notifications & unread count | Public broadcasts for guests; targeted alerts for authenticated owners |
+| `PATCH` | `/api/notifications/:id/read` | Mark single notification read | Requires `Bearer <token>` |
+| `POST` | `/api/notifications/read-all` | Mark all notifications read | Requires `Bearer <token>` |
 | `POST` | `/api/detect` | In-memory tag suggestion proxy | Proxies to Flask with 3s timeout fallback |
 
 ### Flask Microservice (`http://localhost:5001`)
@@ -298,7 +304,7 @@ This project was built following a strict plan-first methodology under the **Bui
 1. **Token Storage in `localStorage`:** JWT tokens are stored in browser `localStorage` for development convenience. In high-security production environments, `HttpOnly` Secure cookies would be preferred.
 2. **In-Memory Rate Limiting:** Authentication rate limiting uses in-memory express-rate-limit; in clustered deployments, a Redis-backed store would be required.
 3. **No Password Reset / Email Verification:** User accounts use bcrypt and 7-day JWT tokens without email confirmation links, password reset workflows, or institutional SSO.
-4. **Client-Side Notification Bell:** The navbar notification bell is a UI placeholder that displays an `alert()` and is not backed by a database notification queue.
+4. **In-App Only Notifications:** Notifications are delivered directly inside the navbar notification center (campus announcements for guests and targeted match alerts for owners); external SMS or carrier push notifications are omitted to keep the prototype self-contained.
 5. **Client-Side Search:** The navbar search bar filters items within the client feed; there is no backend full-text search indexing endpoint.
 6. **Object Detection Vocabulary:** YOLOv8 nano is trained on the COCO dataset. It recognizes standard campus items (bags, phones, bottles, umbrellas, laptops, books). Unrecognized items default to `"other"`, relying on manual dropdown selection.
 7. **Lighting Sensitivity in Color Extraction:** HSV color classification uses majority vote on the bounding box. Extreme reflections, strong shadows, or complex multi-color patterns can lead to unexpected dominant color votes.
@@ -309,22 +315,19 @@ This project was built following a strict plan-first methodology under the **Bui
 
 ## Future work
 
-This is a proof of concept. The following are **not implemented** in the current version. They are the planned next steps, and several of them depend on adding user accounts first.
+This is an AI-assisted proof of concept. The following are planned next steps for scaled campus deployment:
 
-**Recovery workflow (needs user accounts)**
-- **Recovery case state machine:** turn a match into a tracked case with clear states (match found, verification pending, handover agreed, awaiting confirmation, recovered) and server-enforced transitions.
-- **Dual confirmation and receipts:** both the finder and the owner confirm the handover separately, and a receipt is generated only after both confirm.
-- **Proactive notifications:** alert an owner when a new found item matches their saved lost report, with de-duplication so the same match never alerts twice. This needs a way to know who the owner is.
+**Advanced Recovery & Physical Verification**
+- **Recovery case state machine:** Formalize handover agreements into a state machine with dual confirmation receipts from both the finder and rightful owner.
+- **External SMS / Push Gateways:** Add Twilio SMS or mobile push notifications for immediate out-of-band alerts when matches occur.
 
-**Campus operations**
-- **Security dashboard:** a review queue for sensitive or disputed cases (for example ID cards, phones, and wallets), with staff notes and an audit trail.
-- **Campus single sign-on:** login with college accounts, plus roles for students and staff.
+**Campus Administration**
+- **Security dashboard:** A dedicated review queue for campus custody desks and security staff with audit logging and dispute handling.
+- **Campus single sign-on (SSO):** Integration with university SAML/OAuth systems for automatic student verification.
 
-**Smarter matching and assistance**
-- **LLM recovery assistant:** rephrases the existing match reasons and explains the next step. It would only use structured facts from the app, would never claim an item is definitely the owner's, and would have a fallback when the service is unavailable.
-- **Natural-language search:** queries such as "blue bottle with a white sticker" parsed into filters.
-- **Image embeddings:** visual similarity as an extra candidate-finding signal, tested on sample images before being trusted.
-- **Email alerts:** an optional second notification channel.
+**Smarter Matching & Assistance**
+- **Multimodal image embeddings:** Visual feature similarity using CLIP vectors to complement heuristic scoring.
+- **Natural-language search:** Natural-language search parsing queries such as "blue bottle with a white sticker" into filters.
 
 Similarity scores in this app suggest candidates and are not proof of ownership.
 

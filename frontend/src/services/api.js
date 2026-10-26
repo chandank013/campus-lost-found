@@ -84,5 +84,21 @@ export const api = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return res.data;
+  },
+
+  // Notification methods
+  getNotifications: async () => {
+    const res = await axios.get(`${API_BASE}/notifications`);
+    return res.data;
+  },
+
+  markNotificationRead: async (id) => {
+    const res = await axios.patch(`${API_BASE}/notifications/${id}/read`);
+    return res.data;
+  },
+
+  markAllNotificationsRead: async () => {
+    const res = await axios.post(`${API_BASE}/notifications/read-all`);
+    return res.data;
   }
 };

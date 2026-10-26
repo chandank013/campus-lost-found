@@ -22,16 +22,18 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 - **Global Header:**
   - Left: Graduation-cap icon and application name "Campus Lost & Found", linking to `#/`.
   - Center: "Home" link, "Report" dropdown (options: "Report Lost Item" and "Report Found Item"), and "About" link (`#/about`). Note: "Browse" is removed; the feed serves as the catalog.
-  - Right (Logged out): Desktop Search input, "Login" button (styled consistently with primary action buttons: deep indigo background, rounded corners, white text), followed immediately by the Notification bell icon (UI placeholder).
-  - Right (Logged in): Desktop Search input, Notification bell icon, followed by circular Profile avatar with a white Lucide `User` icon. Clicking toggles a dropdown menu with:
-    - User email header: `Signed in as` with the user's email.
-    - "My Profile" link navigating to `#/profile`.
-    - "Logout" button that ends the session and returns the user to the feed.
-    - Dropdown closes on click-outside, Escape key, or menu item selection, with visible focus styles and keyboard accessibility (`aria-haspopup`, `aria-expanded`).
-  - Mobile: Responsive hamburger menu drawer containing Home, Report Lost/Found options, About, Search input, and appropriate auth controls.
+  - Right (Logged out): Desktop Search input, interactive Notification bell icon with unread badge counter, and "Login" button (styled consistently with primary action buttons: deep indigo background, rounded corners, white text).
+  - Right (Logged in): Desktop Search input, interactive Notification bell icon with real-time unread badge counter, followed by circular Profile avatar with a white Lucide `User` icon.
+    - Notification Bell Popover: Toggles an accessible dropdown menu. Before login, displays all public campus upload broadcasts; after login, displays strictly the reports and candidate match alerts belonging to the authenticated owner. Features filter tabs ("All" and "Matches"), timestamps, active indicator dots, "✓ Returned" status badges, and direct click-to-view navigation. Unread count represents active unrecovered items and decrements strictly when an owner marks an item returned.
+    - Profile Avatar Dropdown: Clicking toggles a menu with:
+      - User email header: `Signed in as` with the user's email.
+      - "My Profile" link navigating to `#/profile`.
+      - "Logout" button that ends the session and returns the user to the feed.
+      - Dropdown closes on click-outside, Escape key, or menu item selection, with visible focus styles and keyboard accessibility (`aria-haspopup`, `aria-expanded`).
+  - Mobile: Responsive hamburger menu drawer containing Home, Report Lost/Found options, About, Search input, Notification bell with unread count badge, and appropriate auth controls.
 - **Filter Row:**
   - Type: All / Lost / Found (default: All).
-  - Category: All, bag, phone, bottle, umbrella, laptop, book, other (default: All).
+  - Category: All, bag, phone, bottle, umbrella, laptop, book, headphone, earbuds, airphone, other (default: All).
   - Status: Active / Returned (default: Active).
 - **Cards Grid:** 1 column on mobile, 2–3 columns on desktop, ordered newest first.
   - Card components: Photo thumbnail (consistent 4:3 aspect ratio), Lost/Found badge (color-coded with explicit text), category & color tag pills, truncated 1–2 line description, location & date metadata, and status badge ("Active" / "Returned"). Contact info is strictly excluded.
@@ -42,7 +44,7 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 - Auth guard: Unauthenticated visitors are redirected to `#/login?redirect=/report` with their intended form preserved.
 - Form fields in vertical order:
   1. Photo upload input: Required, images only (JPG, PNG, WebP), max ~5 MB, with clear error message if empty or file is invalid/too large. Renders instant image preview.
-  2. Category dropdown (`bag`, `phone`, `bottle`, `umbrella`, `laptop`, `book`, `other`) — Required.
+  2. Category dropdown (`bag`, `phone`, `bottle`, `umbrella`, `laptop`, `book`, `headphone`, `earbuds`, `airphone`, `earphone`, `hearphone`, `other`) — Required.
   3. Color dropdown (`black`, `white`, `grey`, `red`, `blue`, `green`, `yellow`, `brown`, `other`) — Required.
   4. Description input (text area) with hint text: *"Add details that aren’t obvious from the photo, such as a sticker, a scratch, or what’s inside."*
   5. Location input (e.g., campus building/area) — Required.
@@ -99,6 +101,7 @@ Source: `scope.md > Who It's For`, `scope.md > The Unique Kernel`.
 - Inputs for Email and Password (valid email format, password at least 8 characters).
 - Client-side validation feedback.
 - Submit button with loading state.
+- Seamless Redirect: On successful registration, automatically redirects to `#/login?registered=true&email=...` with the registered email pre-filled and a green confirmation banner displayed.
 - Link to Login page: "Already have an account? Login".
 - Guest route: Logged-in users navigating here are safely redirected to `#/` (Feed).
 
@@ -204,7 +207,7 @@ Source: `scope.md > Core Loop`, `scope.md > Known Limitations`.
 
 ## Deferred From the POC
 - **Interactive Campus Map:** Real coordinates and pin drops deferred to keep the build focused on CV matching and explainable scoring.
-- **Backend Notification Center:** Real-time push/email notification center deferred; the navbar bell icon is an alert placeholder.
+- **External Push/SMS Gateways:** External push/SMS gateways deferred; all campus upload broadcasts and targeted match alerts are delivered directly in-app through the interactive navbar notification dropdown.
 - **Multimodal Embeddings:** Vector DB / CLIP embeddings deferred in favor of clear, explainable heuristic scoring.
 
 ## Non-Goals

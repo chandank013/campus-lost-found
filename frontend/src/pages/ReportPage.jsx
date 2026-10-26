@@ -5,11 +5,15 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const CATEGORIES = [
   { id: 'bag', label: 'Bag / Backpack' },
   { id: 'bottle', label: 'Bottle' },
   { id: 'phone', label: 'Phone' },
+  { id: 'earbuds', label: 'Earbuds' },
+  { id: 'airphone', label: 'Airphone' },
+  { id: 'headphone', label: 'Headphone' },
   { id: 'umbrella', label: 'Umbrella' },
   { id: 'laptop', label: 'Laptop' },
   { id: 'book', label: 'Book' },
@@ -37,6 +41,7 @@ const CUSTODY_OPTIONS = [
 
 export default function ReportPage({ initialType = 'lost', onBack, onSuccess, onNavigate }) {
   const { user } = useAuth();
+  const { fetchNotifications } = useNotifications();
   const [type, setType] = useState(initialType);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -147,6 +152,9 @@ export default function ReportPage({ initialType = 'lost', onBack, onSuccess, on
       formData.append('image', photoFile);
 
       const created = await api.createItem(formData);
+      try {
+        await fetchNotifications();
+      } catch {}
       onSuccess(created._id);
     } catch (err) {
       setErrors((prev) => ({

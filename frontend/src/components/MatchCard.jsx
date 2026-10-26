@@ -1,11 +1,12 @@
 import React from 'react';
 import { 
   MapPin, Calendar, Sparkles, ShoppingBag, Droplets, 
-  ArrowRight, Phone, Laptop, BookOpen, Umbrella, Tag
+  ArrowRight, Phone, Laptop, BookOpen, Umbrella, Tag, Headphones
 } from 'lucide-react';
 
 const getCategoryIcon = (category) => {
   const cat = (category || '').toLowerCase();
+  if (cat.includes('earbud') || cat.includes('airphone') || cat.includes('hearphone') || cat.includes('headphone')) return <Headphones size={10} />;
   if (cat.includes('phone')) return <Phone size={10} />;
   if (cat.includes('laptop')) return <Laptop size={10} />;
   if (cat.includes('bag')) return <ShoppingBag size={10} />;

@@ -32,10 +32,10 @@ export default function ItemCard({ item, onClick }) {
   return (
     <div 
       onClick={() => onClick(item._id)}
-      className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group select-none grid grid-cols-1 sm:grid-cols-[135px_minmax(0,1fr)] lg:grid-cols-[130px_minmax(0,1fr)] xl:grid-cols-[140px_minmax(0,1fr)] gap-4 items-stretch overflow-hidden box-border"
+      className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group select-none grid grid-cols-1 sm:grid-cols-[175px_minmax(0,1fr)] lg:grid-cols-[165px_minmax(0,1fr)] xl:grid-cols-[180px_minmax(0,1fr)] gap-4 sm:gap-5 items-stretch overflow-hidden box-border"
     >
-      {/* 1. Image Section (Occupies its own dedicated grid column, never overlaps content) */}
-      <div className="w-full h-48 sm:h-full sm:min-h-[145px] rounded-xl overflow-hidden bg-slate-100 relative border border-slate-100 flex-shrink-0">
+      {/* 1. Image Section (Prominent object preview with generous dimensions) */}
+      <div className="w-full h-52 sm:h-full sm:min-h-[175px] rounded-xl overflow-hidden bg-slate-100 relative border border-slate-100 flex-shrink-0">
         {!imgError ? (
           <img 
             src={item.imageUrl} 

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { UserPlus, AlertCircle, Loader2, Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 export default function RegisterPage({ onNavigate, redirectUrl = null }) {
-  const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,17 +31,10 @@ export default function RegisterPage({ onNavigate, redirectUrl = null }) {
 
     setSubmitting(true);
     try {
-      await register(cleanEmail, password);
-      // Redirect after registration
-      if (redirectUrl) {
-        if (redirectUrl.startsWith('#/')) {
-          window.location.hash = redirectUrl;
-        } else {
-          window.location.hash = `#/${redirectUrl.replace(/^\/?/, '')}`;
-        }
-      } else {
-        onNavigate('feed');
-      }
+      await api.register(cleanEmail, password);
+      // After registration, redirect immediately to the Login page with success indicator and prefilled email
+      const redParam = redirectUrl ? `&redirect=${encodeURIComponent(redirectUrl)}` : '';
+      window.location.hash = `#/login?registered=true&email=${encodeURIComponent(cleanEmail)}${redParam}`;
     } catch (err) {
       setError(
         err.response?.data?.error || 

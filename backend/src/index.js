@@ -8,6 +8,7 @@ import { getJwtSecret } from './config/jwt.js';
 import itemsRouter from './routes/items.js';
 import detectRouter from './routes/detect.js';
 import authRouter from './routes/auth.js';
+import notificationsRouter from './routes/notifications.js';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRouter);
 app.use('/api/items', itemsRouter);
 app.use('/api/detect', detectRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

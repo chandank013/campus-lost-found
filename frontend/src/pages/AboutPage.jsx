@@ -1,17 +1,9 @@
 import React from 'react';
-import { ArrowLeft, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 export default function AboutPage({ onBack }) {
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 mb-6 transition-colors group"
-      >
-        <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
-        <span>Back to feed</span>
-      </button>
-
       <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-light text-primary-brand text-xs font-extrabold uppercase tracking-wider mb-4 border border-indigo-100">
           <Info size={13} />

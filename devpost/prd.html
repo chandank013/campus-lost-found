@@ -143,8 +143,9 @@
           <div class="ui-box">
             <h3>Layout & Navigation</h3>
             <ul>
-              <li><strong>Header:</strong> "Campus Lost & Found" + dual action buttons ("I lost something" and "I found something").</li>
-              <li><strong>Filter Row:</strong> Type (All/Lost/Found), Category (All, bag, bottle, phone, umbrella, laptop, book, other), Status (Active/Returned).</li>
+              <li><strong>Global Navbar:</strong> Brand left, Home / Report dropdown (Lost & Found options) / About center, Search / Notifications / Login or Profile Avatar right.</li>
+              <li><strong>Interactive Notification Center:</strong> Dropdown popover with dual delivery (campus announcements before login; personal reports & matches after login). Count decrements only on owner item return.</li>
+              <li><strong>Filter Row:</strong> Type (All/Lost/Found), Category (All, bag, phone, bottle, umbrella, laptop, book, headphone, earbuds, airphone, other), Status (Active/Returned).</li>
               <li><strong>Responsive Grid:</strong> 1 column on mobile, 2–3 columns on desktop, newest first.</li>
             </ul>
           </div>
@@ -167,22 +168,22 @@
           <div class="ui-box">
             <h3>Form Fields & Validation</h3>
             <ul>
+              <li><strong>Auth Guard:</strong> Unauthenticated visitors are redirected to <code>#/login?redirect=/report</code>.</li>
               <li><strong>Photo input (Required):</strong> Images only (JPG/PNG/WebP), max ~5MB. Clear inline error if missing or too large. Instant preview.</li>
-              <li><strong>Required Dropdowns:</strong> Category and Color dropdowns are always visible and editable.</li>
-              <li><strong>Description:</strong> Free text with hint: <em>"Add details that aren’t obvious from the photo..."</em></li>
-              <li><strong>Location & Date:</strong> Location input + date picker (defaults to today).</li>
-              <li><strong>Contact:</strong> Phone or email (required). Privacy notice: <em>"Contact info is hidden from the feed and shown only when someone clicks Contact the poster."</em></li>
-              <li><strong>Found Only:</strong> "Where is the item now?" (required for found items).</li>
+              <li><strong>Required Dropdowns:</strong> Category (including audio gear: earbuds, headphones, airphones) and Color dropdowns are always visible and editable.</li>
+              <li><strong>Description, Location & Date:</strong> Descriptive details, campus location, and date picker.</li>
+              <li><strong>Contact Info:</strong> Phone or email (required, private).</li>
+              <li><strong>Found Items:</strong> Custody location + optional private ownership challenge question & hashed answer.</li>
             </ul>
           </div>
           <div class="ui-box">
             <h3>Manual-First AI Tagging Behavior</h3>
             <ul>
-              <li>Selecting a photo triggers asynchronous background request to Flask CV service.</li>
+              <li>Selecting a photo triggers asynchronous background request to Flask CV service via Express proxy.</li>
               <li>A subtle "Detecting..." indicator appears briefly.</li>
               <li>When recognized, dropdowns auto-select with "Suggested automatically. Please check."</li>
               <li>If the model is slow or fails, category defaults to "other" without blocking the user.</li>
-              <li>On submit, valid item redirects directly to its Item Detail page.</li>
+              <li>On submit, assigns authenticated user as owner and redirects to Item Detail page.</li>
             </ul>
           </div>
         </div>
@@ -194,19 +195,19 @@
           <div class="ui-box">
             <h3>Item Detail (Left Column)</h3>
             <ul>
-              <li>Full photo, tags, date, location, and full description.</li>
-              <li>For found items: prominent "Where it is now" notice.</li>
-              <li><strong>"Contact the poster" button:</strong> Calls <code>/api/items/:id/reveal-contact</code> and displays copyable phone/email + claimant reminder note.</li>
-              <li><strong>"Mark as returned" button:</strong> Open confirmation dialog; archives item from active matching.</li>
+              <li>Two-column responsive card with photo lightbox expand (<code>Maximize2</code>), custody notice, and metadata.</li>
+              <li><strong>Contact the poster:</strong> Requires user login. Prompts ownership challenge question if set (max 3 attempts before 5-minute lockout). When unlocked, displays contact info with copy button.</li>
+              <li><strong>Mark as returned:</strong> Strictly restricted to the item's owner (403 for non-owners). On resolution, decrements notification counts and marks item as returned.</li>
             </ul>
           </div>
           <div class="ui-box">
-            <h3>Top-3 Matches (Right Column)</h3>
+            <h3>Top Likely Matches (Right Column)</h3>
             <ul>
-              <li>Displays up to 3 opposite-side active items.</li>
+              <li>Displays up to 3 opposite-side active items scored by the explainable matching engine.</li>
               <li><strong>Qualification rule:</strong> Must share the same category OR at least two matching reasons.</li>
               <li><strong>Reason Chips:</strong> Plain-language chips (e.g. Same category, Same color, 2 shared keywords, Shared location word, Close date).</li>
               <li><strong>Match Tier:</strong> "Strong match", "Good match", or "Possible match".</li>
+              <li><strong>Empty Illustration:</strong> Custom SVG graphic with descriptive advice when no candidates qualify.</li>
             </ul>
           </div>
         </div>
@@ -218,16 +219,17 @@
           <div class="ui-box">
             <h3>Feed & Match Edge States</h3>
             <ul>
-              <li><strong>Seeded Items:</strong> 5 items (blue backpack, black bottle, grey phone, red umbrella + 1 returned item).</li>
+              <li><strong>Seeded Items:</strong> 9 campus items pre-populated across demo accounts (Alice & Bob).</li>
               <li><strong>Empty Filter State:</strong> "No items match these filters" + "Clear filters" button.</li>
-              <li><strong>No Matches State:</strong> "No matches yet. We’ll show likely matches here when someone posts a matching item. Check back later."</li>
+              <li><strong>No Matches State:</strong> Custom illustration and tip card encouraging more specific descriptions.</li>
             </ul>
           </div>
           <div class="ui-box">
             <h3>Technical & Lifecycle States</h3>
             <ul>
               <li><strong>CV Service Offline:</strong> Form continues normally without errors; user selects dropdowns manually.</li>
-              <li><strong>Returned Status:</strong> Detail page displays muted <span class="pill pill-returned">Returned</span> badge; resolution notice replaces buttons.</li>
+              <li><strong>Lockout State:</strong> 3 incorrect challenge attempts triggers a 5-minute cooldown.</li>
+              <li><strong>Returned Status:</strong> Detail page displays muted <span class="pill pill-returned">Returned</span> badge; resolution notice replaces action buttons.</li>
             </ul>
           </div>
         </div>
@@ -249,12 +251,12 @@
             </ul>
           </div>
           <div class="ui-box">
-            <h3>Non-Goals Confirmed</h3>
+            <h3>Security & Architecture Confirmed</h3>
             <ul>
-              <li>No user accounts, passwords, or session tokens.</li>
-              <li>Open "Mark as returned": Anyone with the link can resolve an item without auth checks.</li>
-              <li>No live chat or socket servers.</li>
-              <li>No native mobile apps.</li>
+              <li>User accounts with bcrypt password hashing and 7-day JWTs.</li>
+              <li>Owner-only return authorization with 403 enforcement.</li>
+              <li>Notifications live in navbar bell dropdown; count decrements strictly on item return.</li>
+              <li>Registration routes directly to login with prefilled email.</li>
             </ul>
           </div>
         </div>
@@ -265,13 +267,13 @@
     <div class="card">
       <h2>✅ Observable Acceptance Criteria</h2>
       <ul class="checklist">
-        <li class="check-item"><div class="check-box">✓</div><span>Feed loads populated with 5 seeded items (4 active across bag, bottle, phone, umbrella + 1 returned).</span></li>
+        <li class="check-item"><div class="check-box">✓</div><span>Feed loads populated with seeded campus items across demo accounts Alice and Bob.</span></li>
         <li class="check-item"><div class="check-box">✓</div><span>Photo upload is mandatory, images only, max ~5MB, with an immediate preview.</span></li>
         <li class="check-item"><div class="check-box">✓</div><span>Unrecognized photo defaults to "other" without blocking manual dropdown selection.</span></li>
         <li class="check-item"><div class="check-box">✓</div><span>Matching requires same category OR at least two matching reasons.</span></li>
         <li class="check-item"><div class="check-box">✓</div><span>Location match evaluates shared meaningful words (e.g. "Library").</span></li>
-        <li class="check-item"><div class="check-box">✓</div><span>Contact info is hidden from the feed and shown only when someone clicks "Contact the poster".</span></li>
-        <li class="check-item"><div class="check-box">✓</div><span>Anyone can confirm "Mark as returned", updating item status and removing it from active matching.</span></li>
+        <li class="check-item"><div class="check-box">✓</div><span>Contact info is hidden from the feed and shown only when an authenticated claimant passes the challenge.</span></li>
+        <li class="check-item"><div class="check-box">✓</div><span>Only the item owner can mark an item returned, automatically deducting the active notification count.</span></li>
       </ul>
     </div>
   </div>

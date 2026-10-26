@@ -1,6 +1,6 @@
 // Category words excluded from keyword extraction
 export const CATEGORY_WORDS = new Set([
-  'bag', 'phone', 'bottle', 'umbrella', 'laptop', 'book', 'other'
+  'bag', 'phone', 'bottle', 'umbrella', 'laptop', 'book', 'earbuds', 'airphone', 'hearphone', 'headphone', 'earphone', 'other'
 ]);
 
 // Color words excluded from keyword extraction

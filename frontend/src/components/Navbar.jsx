@@ -1,19 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   GraduationCap, Home, FilePlus, ChevronDown, 
-  Info, Search, Bell, LogIn, LogOut, User, Menu, X 
+  Info, Search, Bell, LogOut, User, Menu, X 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Navbar({ onNavigate, currentView = 'feed' }) {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const reportDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
+  const notificationButtonRef = useRef(null);
   const avatarButtonRef = useRef(null);
 
   const handleReportClick = (type = 'lost') => {
@@ -205,42 +210,43 @@ export default function Navbar({ onNavigate, currentView = 'feed' }) {
             />
           </div>
 
-          {/* 2. When Logged In: Notifications immediately BEFORE Profile Avatar */}
-          {user && (
+          {/* 2. Notifications with real-time unread badge and dropdown */}
+          <div className="relative" ref={notificationButtonRef}>
             <button
               type="button"
               className="p-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer relative"
               title="Notifications"
-              onClick={() => alert('No new notifications at this time.')}
+              onClick={() => setIsNotificationOpen((prev) => !prev)}
+              aria-haspopup="dialog"
+              aria-expanded={isNotificationOpen}
             >
               <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white shadow-2xs">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
-          )}
 
-          {/* 3. When Logged Out: Login button immediately BEFORE Notifications */}
+            <NotificationDropdown
+              isOpen={isNotificationOpen}
+              onClose={() => setIsNotificationOpen(false)}
+              onNavigate={onNavigate}
+              anchorRef={notificationButtonRef}
+            />
+          </div>
+
+          {/* 3. When Logged Out: Login button */}
           {!user && (
             <button
               onClick={() => onNavigate('login')}
               className="flex items-center gap-1.5 px-4 py-2 sm:px-4.5 sm:py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
-              <LogIn size={15} />
               <span>Login</span>
             </button>
           )}
 
-          {/* 4. When Logged Out: Notifications icon immediately AFTER Login button */}
-          {!user && (
-            <button
-              type="button"
-              className="p-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer relative"
-              title="Notifications"
-              onClick={() => alert('No new notifications at this time.')}
-            >
-              <Bell size={18} />
-            </button>
-          )}
-
-          {/* 5. When Logged In: Profile Avatar and Dropdown */}
+          {/* 4. When Logged In: Profile Avatar and Dropdown */}
           {user && (
             <div className="relative pl-1 sm:pl-2 border-l border-slate-200" ref={profileDropdownRef}>
               <button
@@ -400,8 +406,24 @@ export default function Navbar({ onNavigate, currentView = 'feed' }) {
           <div className="pt-2 border-t border-slate-100">
             {user ? (
               <div className="space-y-2">
-                <div className="px-3 py-1.5 text-xs text-slate-500 font-medium">
-                  Signed in as <strong className="text-slate-800">{user.email}</strong>
+                <div className="flex items-center justify-between px-3 py-1.5 text-xs text-slate-500 font-medium">
+                  <span className="truncate mr-2">Signed in as <strong className="text-slate-800">{user.email}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsNotificationOpen(true);
+                    }}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 relative flex-shrink-0"
+                    title="Notifications"
+                  >
+                    <Bell size={15} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] px-0.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -426,22 +448,29 @@ export default function Navbar({ onNavigate, currentView = 'feed' }) {
             ) : (
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
+                  className="p-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer relative"
+                  title="Notifications"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsNotificationOpen(true);
+                  }}
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     onNavigate('login');
                   }}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-white text-xs font-bold shadow-xs cursor-pointer"
                 >
-                  <LogIn size={15} />
                   <span>Login</span>
-                </button>
-                <button
-                  type="button"
-                  className="p-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  title="Notifications"
-                  onClick={() => alert('No new notifications at this time.')}
-                >
-                  <Bell size={18} />
                 </button>
               </div>
             )}

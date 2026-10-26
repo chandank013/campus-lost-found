@@ -121,8 +121,8 @@ The implementation follows a strict manual-first, incremental sequence:
    ```bash
    cd backend
    npm install
-   npm run seed    # Seeds 2 demo users and 5 sample items
-   npm test        # Runs all 35 automated tests
+   npm run seed    # Seeds 2 demo users and sample campus items
+   npm test        # Runs all 41 automated tests
    npm start       # Runs on http://localhost:5000
    ```
 4. **Frontend:**
@@ -235,12 +235,15 @@ The single-page application uses `window.location.hash` with fallback to `pathna
 - `GET /api/auth/me`: Requires JWT auth header (`Bearer <token>`). Returns `{ user: { id, email } }`.
 - `POST /api/detect`: Implements `prd.md > Manual-First Reporting & AI Auto-Tagging`. Uses in-memory Multer storage (`multer.memoryStorage()`) with strict limits (images only, max 5 MB). Forwards file buffer to Flask `POST http://localhost:5001/detect` with a 3-second timeout. Returns `{ category, color }` without writing to disk.
 - `GET /api/items`: Implements `prd.md > Item Feed & Filtering`. Filters by `type`, `category`, `status`. Uses Mongoose `.select('-contact -privateAnswerHash')` to strictly omit sensitive fields. Populates owner public info (`email`).
-- `POST /api/items`: Requires JWT auth header (`Bearer <token>`). Multer storage validates image (≤5MB, mimetype `image/*`), writes to `./uploads/`, assigns `owner = req.user._id`. For found items, optionally accepts `privateQuestion` and `privateAnswer` (stored as SHA-256 `privateAnswerHash`). Returns created item, strictly omitting `contact` and `privateAnswerHash`.
+- `POST /api/items`: Requires JWT auth header (`Bearer <token>`). Multer storage validates image (≤5MB, mimetype `image/*`), writes to `./uploads/`, assigns `owner = req.user._id`. For found items, optionally accepts `privateQuestion` and `privateAnswer` (stored as SHA-256 `privateAnswerHash`). Automatically generates a broadcast notification to all users on the main dashboard (`recipient: null`). Evaluates candidate matches against opposite-side active items; for qualifying matches, generates targeted match notifications delivered exclusively to the item founder and the lost item reporter (`recipient: user._id`). Returns created item, strictly omitting `contact` and `privateAnswerHash`.
 - `GET /api/items/mine`: Requires JWT auth header. Queries items where `owner = req.user._id`, ordered newest first. Strictly excludes `contact` and `privateAnswerHash`.
 - `GET /api/items/:id`: Returns single item details, strictly omitting `contact` and `privateAnswerHash`. Includes `privateQuestion` if configured. Includes `owner` (`_id`, `email`).
 - `GET /api/items/:id/matches`: Implements `prd.md > Explainable Top-3 Matching`. Queries opposite-side active items, runs scoring algorithm, returns top 3 items meeting qualification rule and score ≥ 25.
 - `POST /api/items/:id/reveal-contact`: Requires JWT auth header. If item has a `privateQuestion`, requires `{ answer }` in request body. Validates trimmed lowercased SHA-256 hash. Allows max 3 failed attempts before a 5-minute lockout (HTTP 429). On success (or if no private question), returns `{ contact: item.contact }`.
-- `PATCH /api/items/:id/return`: Requires JWT auth header. Allowed ONLY if `item.owner.equals(req.user._id)`; returns HTTP 403 Forbidden otherwise. Sets `status: 'returned'`.
+- `PATCH /api/items/:id/return`: Requires JWT auth header. Allowed ONLY if `item.owner.equals(req.user._id)`; returns HTTP 403 Forbidden otherwise. Sets `status: 'returned'`. Automatically marks all associated notifications (`item` or `matchedItem`) as resolved (`isResolved: true`) and adds user to `readBy`, immediately decrementing active unread notification counts on both guest and user dashboards.
+- `GET /api/notifications`: Optional JWT auth. If authenticated, returns ONLY notifications and candidate matches belonging to the current user (`recipient: req.user._id`). If guest, returns all campus upload announcements (`recipient: null`). Calculates `unreadCount` strictly based on active unreturned items.
+- `PATCH /api/notifications/:id/read`: Optional JWT auth. Marks single notification as read by adding user to `readBy`.
+- `POST /api/notifications/read-all`: Optional JWT auth. Marks all notifications as read for current user.
 
 ## Explainable Matching Engine & Scoring Specification
 
@@ -336,7 +339,10 @@ const itemSchema = new mongoose.Schema({
   type: { type: String, enum: ['lost', 'found'], required: true },
   category: { 
     type: String, 
-    enum: ['bag', 'phone', 'bottle', 'umbrella', 'laptop', 'book', 'other'], 
+    enum: [
+      'bag', 'phone', 'bottle', 'umbrella', 'laptop', 'book',
+      'headphone', 'earbuds', 'airphone', 'earphone', 'hearphone', 'other'
+    ], 
     required: true 
   },
   color: { 
@@ -364,6 +370,30 @@ const itemSchema = new mongoose.Schema({
 }, { timestamps: true });
 ```
 
+### MongoDB Notification Schema (`backend/src/models/Notification.js`)
+```javascript
+const notificationSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['broadcast', 'match', 'report'],
+    default: 'broadcast'
+  },
+  recipient: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null // null indicates a public broadcast for visitors before login
+  },
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  item: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
+  matchedItem: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
+  matchScore: { type: Number, default: 0 },
+  matchTier: { type: String, default: null },
+  isResolved: { type: Boolean, default: false },
+  readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+}, { timestamps: true });
+```
+
 ### Seed Data Specification (`backend/src/seeds/seed.js`)
 Creates two demo user accounts:
 - `alice@campus.edu` (demo password: `demopassword123`)
@@ -388,20 +418,23 @@ campus-lost-found/
 │   │   │   └── auth.js               # JWT auth verification middleware
 │   │   ├── models/
 │   │   │   ├── Item.js               # Mongoose Item schema (with owner ref)
+│   │   │   ├── Notification.js       # Mongoose Notification schema (broadcast & match)
 │   │   │   └── User.js               # Mongoose User schema (email, passwordHash)
 │   │   ├── routes/
 │   │   │   ├── auth.js               # POST /register, POST /login, GET /me
 │   │   │   ├── detect.js             # Express proxy to Flask (POST /api/detect)
-│   │   │   └── items.js              # CRUD, matches, contact reveal, return, mine
+│   │   │   ├── items.js              # CRUD, matches, contact reveal, return, mine
+│   │   │   └── notifications.js      # Notifications query & resolution sync
 │   │   ├── services/
 │   │   │   └── matcher.js            # Deterministic scoring & reason generation
 │   │   ├── seeds/
-│   │   │   └── seed.js               # 2-user, 5-item seed script with real sample images
+│   │   │   └── seed.js               # Demo users, sample items & notifications seed
 │   │   └── index.js                  # Express app entry & static /uploads serving
 │   ├── tests/
 │   │   ├── api.test.js               # API lifecycle & contact privacy tests
 │   │   ├── auth.test.js              # Auth, ownership & route protection tests
-│   │   └── matcher.test.js           # Scoring engine unit tests
+│   │   ├── matcher.test.js           # Scoring engine unit tests
+│   │   └── notifications.test.js     # Campus broadcast, match alerts & return sync tests
 │   ├── uploads/                      # Committed seed photos & local uploads
 │   ├── package.json
 │   └── .env.example
@@ -415,6 +448,7 @@ campus-lost-found/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Navbar.jsx            # Header, brand, links, search, avatar & drawer
+│   │   │   ├── NotificationDropdown.jsx # Navbar notification popover
 │   │   │   ├── Footer.jsx            # Persistent footer with navigation and links
 │   │   │   ├── RouteGuards.jsx       # GuestRoute, ProtectedRoute, LoadingSpinner
 │   │   │   ├── FilterBar.jsx         # Type, Category, Status pill controls
@@ -423,7 +457,8 @@ campus-lost-found/
 │   │   │   ├── MatchCard.jsx         # Candidate card with reason chips
 │   │   │   └── Modal.jsx             # Accessible popup modal
 │   │   ├── context/
-│   │   │   └── AuthContext.jsx       # Auth provider, token & user state
+│   │   │   ├── AuthContext.jsx       # Auth provider, token & user state
+│   │   │   └── NotificationContext.jsx # Notification state & unread count
 │   │   ├── pages/
 │   │   │   ├── FeedPage.jsx          # Main feed & search
 │   │   │   ├── ReportPage.jsx        # Reporting with CV auto-tagging

@@ -57,13 +57,17 @@ A crisp ~1-minute demo running locally:
   - Flask CV microservice using YOLOv8 (common objects) and OpenCV (color extraction) to enhance auto-tagging.
   - Item status lifecycle (`active` vs. `returned`), filtering returned items out of active matching.
   - Database seed script with 2 demo users and sample items for immediate demo readiness.
+  - In-app notification center: Interactive navbar bell dropdown with real-time active unread badge. Dual delivery pipeline: public campus upload announcements for visitors on the main dashboard (`recipient: null`), and targeted private candidate match alerts delivered exclusively to the owner and founder after login (`recipient: <userId>`).
+  - Strict resolution-bound notification count decrement: the unread counter badge decrements ONLY when an item owner marks the item as returned (`Mark as returned`), automatically resolving notifications across both guest and user views.
+  - Expanded item categories: Support for `headphone`, `earbuds`, `airphone`, `earphone`, `hearphone` alongside standard campus items (`bag`, `phone`, `bottle`, `umbrella`, `laptop`, `book`, `other`).
+  - Registration redirect flow: Submitting account registration automatically redirects to the login screen with prefilled email and green confirmation notice.
   - Baseline local run instructions (npm/python processes) with Docker Compose configuration.
 
 ## Known Limitations
 - **No Password Reset / Email Verification:** User accounts rely on simple email/password registration without email confirmation or password recovery workflows.
 - **Lost Item Contact Visibility:** While found items can be protected with private ownership challenges, lost items reveal contact to any logged-in user without a challenge so finders can reach the owner quickly.
 - **In-Memory Lockout / Rate Limits:** Lockout timestamps are stored per-item in the database; auth endpoints use in-memory rate limiting.
-- **Client-Side Notification Bell:** The navbar notification bell is a UI placeholder (`alert()`) and does not connect to a backend notification center.
+- **In-App Only Notifications:** Notifications are delivered directly inside the navbar notification center (broadcasts for guests and targeted match alerts for owners); external SMS or push notifications are omitted to keep the prototype self-contained.
 
 ## Later
 - Campus map view / pin drop for item locations.

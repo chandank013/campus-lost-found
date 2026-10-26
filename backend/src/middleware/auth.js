@@ -28,3 +28,29 @@ export const requireAuth = async (req, res, next) => {
     next(err);
   }
 };
+
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, getJwtSecret());
+    } catch (err) {
+      req.user = null;
+      return next();
+    }
+
+    const user = await User.findById(decoded.id);
+    req.user = user || null;
+    next();
+  } catch (err) {
+    req.user = null;
+    next();
+  }
+};

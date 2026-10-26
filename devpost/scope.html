@@ -145,28 +145,36 @@
       <div id="in-scope" class="tab-pane active">
         <ul class="boundary-list">
           <li class="boundary-item in-scope">
-            <div class="item-title">React + Tailwind Frontend with Feed Filters</div>
-            <div class="item-desc">Card-based feed with filters (Lost/Found, Category, Active/Returned), image upload with preview, and item details.</div>
+            <div class="item-title">React + Tailwind Frontend with Route Guards</div>
+            <div class="item-desc">Responsive feed with filters (Lost/Found, Category, Status), image upload preview, redesigned two-column detail view with Top Likely Matches, and protected route navigation.</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">User Accounts, JWT Auth & Item Ownership</div>
+            <div class="item-desc">Secure registration and login using bcrypt password hashing, 7-day JWTs, and owner-only return authorization (403 for non-owners).</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Interactive Navbar Notification Center</div>
+            <div class="item-desc">Dual delivery modes: public campus upload broadcasts before login, and targeted private candidate match alerts for owners after login. Badge count decrements strictly on "Mark as returned".</div>
+          </li>
+          <li class="boundary-item in-scope">
+            <div class="item-title">Private Ownership Challenge & Protected Contact Reveal</div>
+            <div class="item-desc">Found items support private verification questions with hashed answers, 3-attempt limits, and 5-minute lockouts. Contact info is strictly excluded from public feeds.</div>
           </li>
           <li class="boundary-item in-scope">
             <div class="item-title">Manual-First Dropdowns with Editable Tags</div>
-            <div class="item-desc">Category and color dropdowns are always visible. Unrecognized items default to "other"; users can freely override any tag.</div>
+            <div class="item-desc">Category and color dropdowns are always visible. Supports standard campus items and audio gear (earbuds, airphones, headphones). Unrecognized items default to "other"; users can freely override any tag.</div>
           </li>
           <li class="boundary-item in-scope">
-            <div class="item-title">Node/Express + MongoDB API</div>
-            <div class="item-desc">CRUD endpoints, seed script (3–4 items), and rule-based heuristic matching with visible reason breakdown.</div>
+            <div class="item-title">Node/Express + MongoDB API with Explainable Matcher</div>
+            <div class="item-desc">CRUD endpoints, 41 automated tests, seed script (2 demo users, 9 items), and deterministic 100-point matching with plain-language reason chips.</div>
           </li>
           <li class="boundary-item in-scope">
-            <div class="item-title">Dedicated Contact Reveal Endpoint</div>
-            <div class="item-desc"><code>/api/items/:id/reveal-contact</code> ensures contact details are securely kept out of general feed and public item payloads until explicitly requested.</div>
+            <div class="item-title">Flask Computer Vision Microservice</div>
+            <div class="item-desc">YOLOv8 category inference + OpenCV HSV dominant color extraction; integrates via Express proxy with automatic 3s timeout fallback.</div>
           </li>
           <li class="boundary-item in-scope">
-            <div class="item-title">Flask Computer Vision Microservice (Added Last)</div>
-            <div class="item-desc">YOLOv8 category inference + OpenCV dominant color extraction; integrates as an enhancement over the manual baseline.</div>
-          </li>
-          <li class="boundary-item in-scope">
-            <div class="item-title">Local Run Baseline + Docker Compose Final Step</div>
-            <div class="item-desc">Clean local process startup instructions (npm/python) as the reliable baseline, with Docker Compose added as the final convenience layer.</div>
+            <div class="item-title">Local Run Baseline + Docker Compose Multi-Container Stack</div>
+            <div class="item-desc">Clean local process startup instructions (npm/python) as the reliable baseline, with Docker Compose orchestration for full stack deployment.</div>
           </li>
         </ul>
       </div>
@@ -175,12 +183,16 @@
       <div id="limitations" class="tab-pane">
         <ul class="boundary-list">
           <li class="boundary-item limitations">
-            <div class="item-title">Open Status Transitions</div>
-            <div class="item-desc">Without logins or user roles, anyone with the item page URL can click "Mark as returned" to close an item.</div>
+            <div class="item-title">No Password Reset / Email Verification</div>
+            <div class="item-desc">User accounts rely on local email/password registration with bcrypt without third-party email confirmation or password recovery workflows.</div>
           </li>
           <li class="boundary-item limitations">
-            <div class="item-title">Unauthenticated Contact Reveal Endpoint</div>
-            <div class="item-desc">While contact info is cleanly omitted from feed payloads, anyone invoking the reveal endpoint can fetch contact details without claim verification.</div>
+            <div class="item-title">Lost Item Direct Contact Reveal</div>
+            <div class="item-desc">While found items can require private ownership challenge answers, lost items reveal contact to any authenticated user to expedite owner notification.</div>
+          </li>
+          <li class="boundary-item limitations">
+            <div class="item-title">In-App Only Notifications</div>
+            <div class="item-desc">Notifications are housed exclusively inside the navbar notification center (broadcasts for guests and targeted matches for owners); external SMS/push gateways are omitted.</div>
           </li>
         </ul>
       </div>
@@ -193,8 +205,8 @@
             <div class="item-desc">Pinpoint exact building or campus spot via Leaflet/Google Maps.</div>
           </li>
           <li class="boundary-item later">
-            <div class="item-title">Automated Match Notifications</div>
-            <div class="item-desc">Email or push notifications triggered when high-scoring matches arrive.</div>
+            <div class="item-title">External Push & SMS Gateways</div>
+            <div class="item-desc">Direct phone SMS or push alerts triggered when high-scoring matches arrive.</div>
           </li>
           <li class="boundary-item later">
             <div class="item-title">Multimodal Semantic Embeddings</div>
@@ -211,8 +223,8 @@
       <div id="cut" class="tab-pane">
         <ul class="boundary-list">
           <li class="boundary-item cut">
-            <div class="item-title">User Accounts & Authentication</div>
-            <div class="item-desc"><strong>Why cut:</strong> Adds auth boilerplate, session handling, and login barriers without demonstrating the CV matching core loop.</div>
+            <div class="item-title">Third-Party Email Verification & Password Reset</div>
+            <div class="item-desc"><strong>Why cut:</strong> Avoids external SMTP/SendGrid service dependencies, keeping the application fully self-contained and reproducible.</div>
           </li>
           <li class="boundary-item cut">
             <div class="item-title">In-App Chat / Messaging</div>
@@ -220,11 +232,11 @@
           </li>
           <li class="boundary-item cut">
             <div class="item-title">Native Mobile Application</div>
-            <div class="item-desc"><strong>Why cut:</strong> High build overhead and distribution friction; responsive web fits the afternoon timeframe.</div>
+            <div class="item-desc"><strong>Why cut:</strong> High build overhead and distribution friction; responsive web fits every campus device without app store approvals.</div>
           </li>
           <li class="boundary-item cut">
-            <div class="item-title">Automated Claim Verification Workflows</div>
-            <div class="item-desc"><strong>Why cut:</strong> Social verification (prompting claimant to describe an unseen detail) handles proof without extra code.</div>
+            <div class="item-title">Complex Multi-Stage Claim Arbitration</div>
+            <div class="item-desc"><strong>Why cut:</strong> Challenge question verification paired with physical confirmation resolves ownership cleanly without administrative bureaucracy.</div>
           </li>
         </ul>
       </div>
@@ -237,36 +249,36 @@
         <div class="step-item">
           <div class="step-num">1</div>
           <div class="step-content">
-            <div class="step-title">Open Localhost with Seed Data</div>
-            <div class="step-desc">Web app loads populated with 3–4 campus items; 1-sentence problem pitch.</div>
+            <div class="step-title">Open Localhost with Seeded Items</div>
+            <div class="step-desc">Web app loads populated with realistic campus items; guest notification bell shows public campus reports.</div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">2</div>
           <div class="step-content">
-            <div class="step-title">Post Found Blue Backpack</div>
-            <div class="step-desc">Upload photo -> Flask detector auto-fills `bag` and `blue` (editable tags) -> Add location "Library 2nd floor" and submit.</div>
+            <div class="step-title">Log In with Demo Account</div>
+            <div class="step-desc">Log in as <code>alice@campus.edu</code> (or register a new student account); navbar transitions to avatar and targeted notifications.</div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">3</div>
           <div class="step-content">
-            <div class="step-title">Post Lost Backpack</div>
-            <div class="step-desc">Upload different photo -> Add description "black zip, blue bag, lost near canteen" -> Submit.</div>
+            <div class="step-title">Post Found Blue Backpack</div>
+            <div class="step-desc">Upload photo &rarr; Flask detector auto-fills <code>bag</code> and <code>blue</code> (editable tags) &rarr; Add location "Library 2nd floor" and submit.</div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">4</div>
           <div class="step-content">
             <div class="step-title">Aha Moment: Top Match with Reasons</div>
-            <div class="step-desc">Found backpack ranks #1 with clear reasons: "Same category, same color, 2 shared keywords, close date".</div>
+            <div class="step-desc">Found backpack ranks #1 with clear reasons: "Same category, same color, 2 shared keywords, close date". Targeted match notification dispatches to affected owners.</div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">5</div>
           <div class="step-content">
-            <div class="step-title">Reveal Contact & Resolve</div>
-            <div class="step-desc">Click "Contact the poster" to call reveal endpoint -> Click "Mark as returned" to clear from active feed.</div>
+            <div class="step-title">Reveal Contact & Owner Returns Item</div>
+            <div class="step-desc">Claimant answers ownership challenge &rarr; reveals contact. Item owner marks as returned &rarr; notification count automatically decrements across both guest and user dashboards.</div>
           </div>
         </div>
       </div>

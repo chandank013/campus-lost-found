@@ -3,10 +3,11 @@ import {
   ChevronLeft, ArrowLeft, MapPin, Calendar, Check, Phone, Copy, 
   Sparkles, AlertCircle, Loader2, ShieldCheck, ArrowRight, Package,
   Lock, CheckCircle2, X, LogIn, Maximize2, Lightbulb, Smartphone,
-  Laptop, ShoppingBag, Droplet, Umbrella, BookOpen, Tag, Palette
+  Laptop, ShoppingBag, Droplet, Umbrella, BookOpen, Tag, Palette, Headphones
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import MatchCard from '../components/MatchCard';
 
 /**
@@ -14,6 +15,7 @@ import MatchCard from '../components/MatchCard';
  */
 const getCategoryIcon = (category) => {
   const cat = (category || '').toLowerCase();
+  if (cat.includes('earbud') || cat.includes('airphone') || cat.includes('hearphone') || cat.includes('headphone')) return <Headphones size={13} />;
   if (cat.includes('phone')) return <Smartphone size={13} />;
   if (cat.includes('laptop')) return <Laptop size={13} />;
   if (cat.includes('bag')) return <ShoppingBag size={13} />;
@@ -71,6 +73,7 @@ function MatchesEmptyIllustration() {
 
 export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }) {
   const { user } = useAuth();
+  const { fetchNotifications } = useNotifications();
   const [item, setItem] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -198,6 +201,9 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
       const res = await api.markReturned(itemId);
       setItem(res.item);
       setShowReturnModal(false);
+      try {
+        await fetchNotifications();
+      } catch {}
     } catch (err) {
       setReturnError(err.response?.data?.error || err.response?.data?.message || 'Failed to mark item returned.');
     } finally {
@@ -234,9 +240,16 @@ export default function DetailPage({ itemId, onBack, onSelectMatch, onNavigate }
 
   const isLost = item.type === 'lost';
   const isReturned = item.status === 'returned';
-  const ownerId = item.owner?._id || item.owner;
+  const ownerId = item.owner?._id || item.owner?.id || item.owner;
   const currentUserId = user?.id || user?._id;
-  const isOwner = Boolean(user && ownerId && currentUserId && String(ownerId) === String(currentUserId));
+  const ownerEmail = typeof item.owner === 'object' ? item.owner?.email : null;
+  const currentUserEmail = user?.email;
+  const isOwner = Boolean(
+    user && (
+      (ownerId && currentUserId && String(ownerId) === String(currentUserId)) ||
+      (ownerEmail && currentUserEmail && ownerEmail.toLowerCase() === currentUserEmail.toLowerCase())
+    )
+  );
   const formattedDate = new Date(item.date).toLocaleDateString('en-US', {
     month: 'short',
     day: '2-digit',

@@ -262,12 +262,19 @@
             <span>Express queries opposite-side active items &rarr; scores candidates out of 100 &rarr; generates human-readable reason chips.</span>
           </div>
         </div>
+        <div class="flow-step">
+          <div class="step-number">6</div>
+          <div class="step-content">
+            <strong>Targeted Match Notifications & Owner Resolution</strong>
+            <span>Express dispatches targeted match notifications to the owner and founder &rarr; Owner clicks "Mark as returned" &rarr; unread notification badge automatically decrements across both guest and user views.</span>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- Code Tour Route -->
     <section>
-      <h2>Guided Code Tour Route (3 Key Stops)</h2>
+      <h2>Guided Code Tour Route (4 Key Stops)</h2>
       <p>Follow how a single photo selection journeys through the entire codebase:</p>
 
       <div class="tour-stop">
@@ -293,6 +300,14 @@
           Instead of opaque neural embeddings, the matcher computes a transparent 100-point score across 5 factors (Category 40, Color 25, Keywords 15, Location 10, Date 10). It strictly enforces the PRD qualification rule (Same category OR &ge;2 factors, score &ge;25) and generates exact chips like <code>"2 shared keywords: straps, zip"</code>.
         </div>
       </div>
+
+      <div class="tour-stop">
+        <div class="stop-title">Stop 4: Targeted Notifications & Resolution-Bound Badge Sync</div>
+        <div class="stop-path">backend/src/routes/notifications.js &bull; backend/src/routes/items.js</div>
+        <div class="stop-desc">
+          When an item is uploaded, Express broadcasts a public announcement to visitors on the main dashboard and sends targeted match alerts only to the affected owners. When an owner marks an item returned via <code>PATCH /api/items/:id/return</code>, all related notifications are resolved (<code>isResolved: true</code>), decrementing the unread badge counter in real time across both the main dashboard and the user profile.
+        </div>
+      </div>
     </section>
 
     <!-- Where to Change Things -->
@@ -310,14 +325,14 @@
           <p>Adjust point weights in <code>calculateMatch()</code> or qualitative tier boundaries (Strong &ge;70, Good 55–69, Possible 25–54).</p>
         </div>
         <div class="pointer-card">
-          <h3>Modify Contact Privacy</h3>
-          <code>backend/src/routes/items.js</code>
-          <p>Review <code>.select('-contact')</code> in feed/detail queries and the dedicated <code>/reveal-contact</code> endpoint.</p>
+          <h3>Notification Delivery & Badges</h3>
+          <code>backend/src/routes/notifications.js</code>
+          <p>Review <code>GET /api/notifications</code> filtering (guest vs. authenticated user) and <code>unreadCount</code> calculation based on active unreturned items.</p>
         </div>
         <div class="pointer-card">
-          <h3>Add Stopwords</h3>
-          <code>backend/src/services/matcher.js</code>
-          <p>Update <code>LOCATION_STOPWORDS</code> or standard English stopwords in the tokenization filters.</p>
+          <h3>Modify Contact Privacy</h3>
+          <code>backend/src/routes/items.js</code>
+          <p>Review <code>.select('-contact -privateAnswerHash')</code> in feed/detail queries and the challenge verification endpoint.</p>
         </div>
       </div>
     </section>

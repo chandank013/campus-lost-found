@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Item } from '../models/Item.js';
+import { Notification } from '../models/Notification.js';
 import { findTopMatches } from '../services/matcher.js';
 import { hashAnswer, verifyAnswer } from '../utils/security.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -54,7 +55,12 @@ router.get('/', async (req, res) => {
       filter.type = type.toLowerCase();
     }
     if (category && category !== 'all') {
-      filter.category = category.toLowerCase();
+      const cat = category.toLowerCase();
+      if (cat === 'headphone') {
+        filter.category = { $in: ['headphone', 'hearphone'] };
+      } else {
+        filter.category = cat;
+      }
     }
     if (status && status !== 'all') {
       filter.status = status.toLowerCase();
@@ -161,6 +167,79 @@ router.post('/', requireAuth, upload.single('image'), async (req, res) => {
     const newItem = new Item(itemData);
     const saved = await newItem.save();
     
+    // 1. Generate broadcast notification for all users on the main dashboard
+    try {
+      await Notification.create({
+        type: 'broadcast',
+        recipient: null, // to all users before login on main dashboard
+        title: `New ${saved.type === 'lost' ? 'Lost' : 'Found'} Item Reported`,
+        message: `${saved.description || `${saved.color} ${saved.category}`} was reported at ${saved.location}`,
+        item: saved._id
+      });
+
+      // Notification exclusively for the uploader (the owner)
+      if (saved.owner) {
+        await Notification.create({
+          type: 'report',
+          recipient: saved.owner,
+          title: `Your ${saved.type === 'lost' ? 'Lost' : 'Found'} Item Was Reported`,
+          message: `Your report for "${saved.description || `${saved.color} ${saved.category}`}" at ${saved.location} is active.`,
+          item: saved._id
+        });
+      }
+    } catch (notifErr) {
+      console.error('[Notification] Failed to create notification:', notifErr.message);
+    }
+
+    // 2. Evaluate matches with opposite-side active items
+    // If items match, send targeted notifications ONLY to the item founder and the person who uploaded the lost item
+    try {
+      const oppositeType = saved.type === 'lost' ? 'found' : 'lost';
+      const oppositeCandidates = await Item.find({
+        type: oppositeType,
+        status: 'active',
+        _id: { $ne: saved._id }
+      }).select('-contact -privateAnswerHash');
+
+      const matches = findTopMatches(saved, oppositeCandidates);
+
+      for (const match of matches) {
+        const candidate = match.item;
+        const candidateOwner = candidate.owner?._id || candidate.owner;
+        const currentOwner = saved.owner;
+
+        // Targeted match notification to current uploader
+        if (currentOwner) {
+          await Notification.create({
+            type: 'match',
+            recipient: currentOwner,
+            title: `Potential Match for Your ${saved.type === 'lost' ? 'Lost' : 'Found'} Report!`,
+            message: `A ${candidate.type} ${candidate.category} ("${candidate.description || candidate.category}") matches your report (${match.tier} • ${match.score}% score).`,
+            item: candidate._id,
+            matchedItem: saved._id,
+            matchScore: match.score,
+            matchTier: match.tier
+          });
+        }
+
+        // Targeted match notification to the other party (founder or lost item poster)
+        if (candidateOwner && String(candidateOwner) !== String(currentOwner)) {
+          await Notification.create({
+            type: 'match',
+            recipient: candidateOwner,
+            title: `New Potential Match for Your ${candidate.type === 'lost' ? 'Lost' : 'Found'} Report!`,
+            message: `A newly reported ${saved.type} ${saved.category} ("${saved.description || saved.category}") matches your report (${match.tier} • ${match.score}% score).`,
+            item: saved._id,
+            matchedItem: candidate._id,
+            matchScore: match.score,
+            matchTier: match.tier
+          });
+        }
+      }
+    } catch (matchNotifErr) {
+      console.error('[Notification] Failed to generate match notifications:', matchNotifErr.message);
+    }
+
     // Return created item with contact and internal hashes omitted
     const responseItem = saved.toObject();
     delete responseItem.contact;
@@ -278,6 +357,24 @@ router.patch('/:id/return', requireAuth, async (req, res) => {
 
     item.status = 'returned';
     await item.save();
+
+    // Automatically mark all notifications associated with this returned item as done/read
+    try {
+      await Notification.updateMany(
+        {
+          $or: [
+            { item: item._id },
+            { matchedItem: item._id }
+          ]
+        },
+        {
+          $set: { isResolved: true },
+          $addToSet: { readBy: req.user._id }
+        }
+      );
+    } catch (notifErr) {
+      console.error('[Notification] Failed to mark notifications done for returned item:', notifErr.message);
+    }
 
     const responseItem = item.toObject();
     delete responseItem.contact;

@@ -157,3 +157,24 @@ Activity mode: Live app and editor, paired with standalone `devpost/app-map.html
     - `1f742d0`: `feat(navbar): use User icon for profile avatar and share button styling with login button`
     - `26c4207`: `feat(detail): redesign item detail page and matches panel to match reference design`
     - `450b42b`: `feat(ui): update navbar layout, footer, and profile page`
+
+
+- [x] **Slice E: Campus Upload Broadcast & Targeted Match Notification System (2026-10-26)**
+  Becomes usable:
+    1. Notification Model & Database Pipeline: MongoDB `Notification` schema with dual delivery modes: public campus broadcasts (`recipient: null`) and targeted private match alerts (`recipient: <userId>`).
+    2. Upload-Triggered Notifications:
+       - On uploading any lost or found item, a public broadcast announcement is generated for all users on the main dashboard before login.
+       - Candidate matching evaluates opposite-side active items; when qualifying matches are detected, private targeted match alerts are dispatched exclusively to the item founder and the lost item reporter.
+       - Strict privacy guarantees: third-party students and guests cannot access or view private match alerts.
+    3. Interactive Navbar Notification Center (`Navbar.jsx` & `NotificationDropdown.jsx`):
+       - Notifications live exclusively inside the top navigation bell icon dropdown (all in-page notification banners removed from `FeedPage.jsx`).
+       - Dropdown popover features filter tabs ("All" and "Matches"), timestamps, active indicator dots, "✓ Returned" status badges, and direct click-to-view navigation.
+       - Manual "Mark as done" and "Mark all read" controls removed.
+       - Strict unread count decrement rule: the notification counter badge decrements **only** when an item owner marks the item as returned via `Mark as returned`. Marking an item returned resolves notifications across both the guest main dashboard and the owner's dashboard.
+    4. Registration Flow & Category Expansion:
+       - Registering an account immediately redirects to the login page (`#/login?registered=true`) with a confirmation banner and pre-filled email address.
+       - Added expanded audio categories to the system enum and UI: `headphone`, `earbuds`, `airphone`, `earphone`, and `hearphone`.
+    5. Test Suite Expansion: Added `backend/tests/notifications.test.js`, bringing automated test coverage to 41 passing tests across 4 test suites.
+  Verify (mechanical):
+    - All 41 backend tests pass (`npm test` in `backend/`).
+    - Frontend compiles cleanly (`npm run build` in `frontend/`) with 0 errors.
